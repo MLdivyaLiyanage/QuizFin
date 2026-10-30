@@ -1,5 +1,7 @@
 package com.perisic.fish.engine;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -13,11 +15,14 @@ public class Question {
     /** All answers (correct + wrong) in shiffled order.*/
     public final List<String> options;
 
-    public Question(String category, String difficulty, String text, String correct, List<String> options) {
+    public Question(String category, String difficulty, String text, String correct, List<String> wrong) {
         this.category = category;
         this.difficulty = difficulty;
         this.text = text;
         this.correct = correct;
-        this.options = options;
+        List<String> all = new ArrayList<>(wrong);
+        all.add(correct);
+        Collections.shuffle(all);
+        this.options = Collections.unmodifiableList(all);
     }
 }
