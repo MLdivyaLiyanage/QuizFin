@@ -54,6 +54,13 @@ public class GameEngine {
     private int bestStreak = 0;
     private int correctCount = 0;
 
+    /**
+     * Each player has their own game engine.
+     */
+    public GameEngine(String player) {
+        this(player, new GameServer());
+    }
+
     /** Dependency injection: any GameSource (Fish API, test stub, ...). */
     public GameEngine(String player, GameSource source) {
         this(player, source, ROUNDS);
