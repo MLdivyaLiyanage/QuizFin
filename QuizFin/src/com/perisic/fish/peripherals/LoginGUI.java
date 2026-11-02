@@ -65,7 +65,7 @@ public class LoginGUI extends JFrame {
         setResizable(false);
 
         JPanel root = new JPanel(new BorderLayout());
-        root.setPreferredSize(new Dimension(812, 578));
+        root.setPreferredSize(new Dimension(960, 640));
         root.add(buildBrand(), BorderLayout.WEST);
         root.add(buildForm(txuser, pass, remember, blogin), BorderLayout.CENTER);
         getContentPane().add(root, BorderLayout.CENTER);
@@ -106,11 +106,11 @@ public class LoginGUI extends JFrame {
         brand.setOpaque(false);
         brand.setLayout(new BoxLayout(brand, BoxLayout.Y_AXIS));
         brand.setBorder(BorderFactory.createEmptyBorder(46, 48, 0, 20));
-        brand.add(Theme.label("QUIZFIN", Font.BOLD, 26, Theme.TEXT));
+        brand.add(Theme.label("QUIZFIN", Theme.display(34), Theme.TEXT));
         brand.add(Box.createVerticalStrut(8));
-        brand.add(Theme.label("Two games. One adventure.", Font.BOLD, 14, new Color(0x376681)));
+        brand.add(Theme.label("Two games. One adventure.", Font.PLAIN, 15, new Color(0x376681)));
         brand.add(Box.createVerticalStrut(10));
-        brand.add(Theme.label("General knowledge + fish identification", Font.PLAIN, 10, Theme.MUTED));
+        brand.add(Theme.label("General knowledge + fish identification", Font.PLAIN, 13, Theme.MUTED));
         left.add(brand, BorderLayout.NORTH);
         return left;
     }
@@ -141,7 +141,7 @@ public class LoginGUI extends JFrame {
         JPanel right = new JPanel(new GridBagLayout());
         right.setBackground(Theme.BG);
         JPanel form = new RoundPanel(Color.WHITE, 36, new GridBagLayout());
-        form.setPreferredSize(new Dimension(316, 400));
+        form.setPreferredSize(new Dimension(400, 470));
         form.setBorder(BorderFactory.createEmptyBorder(30, 30, 50, 30));
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
@@ -149,26 +149,26 @@ public class LoginGUI extends JFrame {
         c.weightx = 1;
         c.insets = new Insets(3, 0, 3, 0);
 
-        form.add(Theme.label("Welcome back!", Font.BOLD, 20, Theme.TEXT), c);
-        form.add(Theme.label("Sign in to continue your adventure", Font.PLAIN, 10, Theme.MUTED), c);
+        form.add(Theme.label("Welcome back!", Theme.display(28), Theme.TEXT), c);
+        form.add(Theme.label("Sign in to continue your adventure", Font.PLAIN, 13, Theme.MUTED), c);
         c.insets = new Insets(24, 0, 5, 0);
-        form.add(Theme.label("Username", Font.BOLD, 10, Theme.TEXT), c);
+        form.add(Theme.label("Username", Font.BOLD, 14, Theme.TEXT), c);
         c.insets = new Insets(3, 0, 3, 0);
         form.add(buildInput(txuser), c);
         c.insets = new Insets(16, 0, 5, 0);
-        form.add(Theme.label("Password", Font.BOLD, 10, Theme.TEXT), c);
+        form.add(Theme.label("Password", Font.BOLD, 14, Theme.TEXT), c);
         c.insets = new Insets(3, 0, 3, 0);
         form.add(buildInput(pass), c);
         remember.setOpaque(false);
-        remember.setFont(Theme.font(Font.PLAIN, 10));
+        remember.setFont(Theme.font(Font.PLAIN, 13));
         remember.setForeground(Theme.MUTED);
         form.add(remember, c);
         c.insets = new Insets(10, 0, 0, 0);
-        blogin.setFont(Theme.font(Font.BOLD, 10));
-        blogin.setPreferredSize(new Dimension(254, 32));
+        blogin.setFont(Theme.font(Font.BOLD, 16));
+        blogin.setPreferredSize(new Dimension(340, 44));
         form.add(blogin, c);
         c.insets = new Insets(24, 0, 0, 0);
-        JLabel footer = Theme.label("Ready to play? Your adventure awaits.", Font.PLAIN, 9, Theme.MUTED);
+        JLabel footer = Theme.label("Ready to play? Your adventure awaits.", Font.PLAIN, 13, Theme.MUTED);
         footer.setHorizontalAlignment(JLabel.CENTER);
         form.add(footer, c);
         right.add(form);
@@ -177,13 +177,13 @@ public class LoginGUI extends JFrame {
 
     private static JPanel buildInput(JTextField field) {
         field.setOpaque(false);
-        field.setFont(Theme.font(Font.PLAIN, 11));
+        field.setFont(Theme.font(Font.PLAIN, 15));
         field.setForeground(new Color(0x376681));
         field.setCaretColor(Theme.TEXT);
         field.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
         JPanel input = new RoundPanel(new Color(0xF5F8FC), 14, new BorderLayout());
-        input.setPreferredSize(new Dimension(254, 36));
-        input.setMinimumSize(new Dimension(254, 36));
+        input.setPreferredSize(new Dimension(340, 44));
+        input.setMinimumSize(new Dimension(340, 44));
         input.add(field, BorderLayout.CENTER);
         return input;
     }

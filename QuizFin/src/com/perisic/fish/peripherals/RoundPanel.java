@@ -26,6 +26,7 @@ class RoundPanel extends JPanel {
         this.fill = fill;
         this.arc = arc;
         setOpaque(false);
+        setFont(Theme.font(java.awt.Font.PLAIN, 15));
     }
 
     @Override

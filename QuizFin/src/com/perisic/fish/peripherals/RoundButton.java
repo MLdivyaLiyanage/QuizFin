@@ -28,7 +28,7 @@ class RoundButton extends JButton {
         setBorderPainted(false);
         setFocusPainted(false);
         setOpaque(false);
-        setFont(Theme.font(java.awt.Font.BOLD, 14));
+        setFont(Theme.font(java.awt.Font.BOLD, 16));
         setForeground(Color.WHITE);
         setBorder(new EmptyBorder(10, 18, 10, 18));
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

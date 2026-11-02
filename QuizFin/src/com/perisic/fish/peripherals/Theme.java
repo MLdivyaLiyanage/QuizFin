@@ -3,16 +3,47 @@ package com.perisic.fish.peripherals;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.FontFormatException;
+import java.awt.GraphicsEnvironment;
 import java.awt.Graphics2D;
 import java.awt.geom.Path2D;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import javax.swing.JLabel;
+import javax.swing.Icon;
+import javax.swing.UIDefaults;
+import javax.swing.UIManager;
+import javax.swing.plaf.FontUIResource;
 
 /**
  * Colours, fonts and tiny helpers shared by all screens (matches the Figma
  * design: navy sidebar, light-blue content, blue primary buttons).
  */
 final class Theme {
+    private static final Font FREDOKA_BOLD = loadAppFont("Fredoka-Bold.ttf");
+    private static final Font POPPINS_REGULAR = loadAppFont("Poppins-Regular.ttf");
+    private static final Font POPPINS_MEDIUM = loadAppFont("Poppins-Medium.ttf");
+    private static final Font POPPINS_SEMIBOLD = loadAppFont("Poppins-SemiBold.ttf");
+    private static final Font NUNITO_REGULAR = loadAppFont("Nunito-Regular.ttf");
+    private static final Font NUNITO_SEMIBOLD = loadAppFont("Nunito-SemiBold.ttf");
+    private static final Font NUNITO_BOLD = loadAppFont("Nunito-Bold.ttf");
+
+    static {
+        // Include standard Swing controls and dialogs in the application typography.
+        UIDefaults defaults = UIManager.getDefaults();
+        for (Object key : defaults.keySet().toArray()) {
+            Object value = defaults.get(key);
+            if (value instanceof Font existing) {
+                UIManager.put(key, new FontUIResource(font(existing.getStyle(), existing.getSize())));
+            }
+        }
+        UIManager.put("OptionPane.messageFont", new FontUIResource(font(Font.PLAIN, 14)));
+        UIManager.put("OptionPane.buttonFont", new FontUIResource(font(Font.BOLD, 14)));
+    }
+
     static final Color NAVY = new Color(0x10, 0x2A, 0x4C);
     static final Color NAV_ACTIVE = new Color(0x24, 0x52, 0x7F);
     static final Color BG = new Color(0xEE, 0xF6, 0xFB);
@@ -35,14 +66,62 @@ final class Theme {
     }
 
     static Font font(int style, int size) {
-        return new Font("SansSerif", style, size);
+        Font base = (style & Font.BOLD) != 0 ? POPPINS_SEMIBOLD : POPPINS_REGULAR;
+        return base.deriveFont((float) size);
+    }
+
+    static Font display(int size) { return FREDOKA_BOLD.deriveFont((float) size); }
+    static Font medium(int size) { return POPPINS_MEDIUM.deriveFont((float) size); }
+    static Font nunito(int style, int size) {
+        return ((style & Font.BOLD) != 0 ? NUNITO_BOLD : NUNITO_REGULAR).deriveFont((float) size);
+    }
+    static Font nunitoSemiBold(int size) { return NUNITO_SEMIBOLD.deriveFont((float) size); }
+
+    private static Font loadAppFont(String filename) {
+        String resource = "/com/perisic/fish/peripherals/fonts/" + filename;
+        try (InputStream input = openFont(resource)) {
+            Font font = Font.createFont(Font.TRUETYPE_FONT, input);
+            GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(font);
+            return font;
+        } catch (IOException | FontFormatException exception) {
+            System.err.println("Could not load bundled font " + filename + ": " + exception.getMessage());
+            return new Font(Font.SANS_SERIF, Font.PLAIN, 14);
+        }
+    }
+
+    private static InputStream openFont(String resource) throws IOException {
+        InputStream bundled = Theme.class.getResourceAsStream(resource);
+        if (bundled != null) return bundled;
+        // Also support plain javac output when running from the project root.
+        return Files.newInputStream(Path.of("src" + resource));
     }
 
     static JLabel label(String text, int style, int size, Color color) {
+        return label(text, font(style, size), color);
+    }
+
+    static JLabel label(String text, Font font, Color color) {
         JLabel l = new JLabel(text);
-        l.setFont(font(style, size));
+        l.setFont(font);
         l.setForeground(color);
         return l;
+    }
+
+    /** Keep navigation symbols readable when the text font lacks these glyphs. */
+    static Icon symbolIcon(String symbol, Color color, int size) {
+        return new Icon() {
+            public int getIconWidth() { return size + 2; }
+            public int getIconHeight() { return size + 2; }
+            public void paintIcon(java.awt.Component component, java.awt.Graphics graphics, int x, int y) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, size));
+                g.setColor(color);
+                g.drawString(symbol, x, y + size);
+                g.dispose();
+            }
+        };
     }
 
     /** Resolution-independent book, quiz and fish illustration from the reference. */

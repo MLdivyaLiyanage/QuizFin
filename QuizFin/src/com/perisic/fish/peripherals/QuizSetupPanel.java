@@ -47,13 +47,12 @@ import com.perisic.fish.engine.Question;
  */
 class QuizSetupPanel extends JPanel {
     private static final long serialVersionUID = 1L;
-    private static final String FONT_FAMILY = new Font("Segoe UI", Font.PLAIN, 14).getFamily();
 
     private final GameGUI frame;
     private final transient QuestionSource server;
     private final JComboBox<Category> categoryBox = new JComboBox<>();
     private final RoundButton start = new RoundButton("Start Quiz");
-    private final JLabel summary = Theme.label("", Font.BOLD, 14, Theme.TEXT);
+    private final JLabel summary = Theme.label("", Font.BOLD, 15, Theme.TEXT);
     private boolean loading;
 
     private final String[] difficulties = { "Easy", "Medium", "Hard" };
@@ -74,9 +73,9 @@ class QuizSetupPanel extends JPanel {
         JPanel bt = new JPanel();
         bt.setOpaque(false);
         bt.setLayout(new BoxLayout(bt, BoxLayout.Y_AXIS));
-        bt.add(Theme.label("Ready for a brain challenge?", Font.BOLD, 20, Theme.TEXT));
+        bt.add(Theme.label("Ready for a brain challenge?", Font.BOLD, 22, Theme.TEXT));
         bt.add(Box.createVerticalStrut(6));
-        bt.add(Theme.label("Choose your quiz length, then play matching fish rounds.", Font.PLAIN, 13, Theme.MUTED));
+        bt.add(Theme.label("Choose your quiz length, then play matching fish rounds.", Theme.nunito(Font.PLAIN, 14), Theme.MUTED));
         banner.add(bt, BorderLayout.CENTER);
         add(banner, BorderLayout.NORTH);
 
@@ -93,16 +92,16 @@ class QuizSetupPanel extends JPanel {
         card.add(Theme.label("Build your quiz", Font.BOLD, 22, Theme.TEXT), c);
         c.gridy++;
         c.insets = new Insets(4, 0, 0, 0);
-        card.add(Theme.label("Choose a topic and a challenge level that suits you.", Font.PLAIN, 13, Theme.MUTED), c);
+        card.add(Theme.label("Choose a topic and a challenge level that suits you.", Theme.nunito(Font.PLAIN, 14), Theme.MUTED), c);
         c.gridy++;
         c.insets = new Insets(16, 0, 0, 0);
         card.add(fieldHeading("Category", "Choose a topic you enjoy"), c);
         c.gridy++;
         c.insets = new Insets(6, 0, 0, 0);
-        categoryBox.setFont(Theme.font(Font.PLAIN, 14));
+        categoryBox.setFont(Theme.font(Font.PLAIN, 15));
         categoryBox.setForeground(Theme.TEXT);
         categoryBox.setBackground(Theme.CHIP);
-        categoryBox.setPreferredSize(new Dimension(300, 40));
+        categoryBox.setPreferredSize(new Dimension(300, 44));
         categoryBox.setMaximumRowCount(10);
         categoryBox.getAccessibleContext().setAccessibleName("Quiz category");
         categoryBox.setRenderer(new DefaultListCellRenderer() {
@@ -114,7 +113,7 @@ class QuizSetupPanel extends JPanel {
                 label.setBorder(new EmptyBorder(7, 10, 7, 10));
                 label.setBackground(index >= 0 && selected ? Theme.CHIP_SEL : Theme.CHIP);
                 label.setForeground(Theme.TEXT);
-                label.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+                label.setFont(Theme.font(Font.PLAIN, 15));
                 return label;
             }
         });
@@ -122,7 +121,7 @@ class QuizSetupPanel extends JPanel {
         card.add(categoryBox, c);
         c.gridy++;
         c.insets = new Insets(14, 0, 0, 0);
-        card.add(fieldHeading("Difficulty", "Points per answer: Easy 10 / Medium 15 / Hard 20"), c);
+        card.add(fieldHeading("Difficulty", "Easy: 10 pts / Medium: 15 pts / Hard: 20 pts"), c);
         c.gridy++;
         c.insets = new Insets(6, 0, 0, 0);
         card.add(chipRow(difficulties, diffButtons, 0, i -> { difficultyIdx = i; updateSummary(); }), c);
@@ -139,11 +138,11 @@ class QuizSetupPanel extends JPanel {
         footer.setBorder(new EmptyBorder(10, 14, 10, 10));
         JPanel details = new JPanel(new GridLayout(2, 1, 0, 3));
         details.setOpaque(false);
-        details.add(Theme.label("Your quiz", Font.PLAIN, 12, Theme.MUTED));
+        details.add(Theme.label("Your quiz", Theme.nunito(Font.PLAIN, 13), Theme.MUTED));
         details.add(summary);
         footer.add(details, BorderLayout.CENTER);
         updateSummary();
-        start.setPreferredSize(new Dimension(180, 42));
+        start.setPreferredSize(new Dimension(190, 46));
         start.setFocusPainted(true);
         start.addActionListener(e -> startQuiz());
         footer.add(start, BorderLayout.EAST);
@@ -159,26 +158,14 @@ class QuizSetupPanel extends JPanel {
         wrap.add(card, placement);
         add(wrap, BorderLayout.CENTER);
 
-        applySetupFont(this);
         loadCategories();
-    }
-
-    private static void applySetupFont(Component component) {
-        Font current = component.getFont();
-        if (current != null) {
-            component.setFont(new Font(FONT_FAMILY, current.getStyle(), current.getSize()));
-        }
-        if (component instanceof java.awt.Container container) {
-            for (Component child : container.getComponents()) applySetupFont(child);
-            container.invalidate();
-        }
     }
 
     private static JPanel fieldHeading(String title, String hint) {
         JPanel row = new JPanel(new BorderLayout(12, 0));
         row.setOpaque(false);
-        row.add(Theme.label(title, Font.BOLD, 14, Theme.TEXT), BorderLayout.WEST);
-        row.add(Theme.label(hint, Font.PLAIN, 12, Theme.MUTED), BorderLayout.EAST);
+        row.add(Theme.label(title, Font.BOLD, 20, Theme.TEXT), BorderLayout.WEST);
+        row.add(Theme.label(hint, Theme.nunito(Font.PLAIN, 13), Theme.MUTED), BorderLayout.EAST);
         return row;
     }
 
@@ -193,10 +180,10 @@ class QuizSetupPanel extends JPanel {
     private JComponent chipRow(String[] labels, List<RoundButton> store, int selected, IndexHandler h) {
         JPanel row = new JPanel(new GridLayout(1, labels.length, 12, 0));
         row.setOpaque(false);
-        row.setPreferredSize(new Dimension(0, 44));
+        row.setPreferredSize(new Dimension(0, 48));
         for (int i = 0; i < labels.length; i++) {
             RoundButton b = new ChoiceButton(labels[i]);
-            b.setFont(Theme.font(Font.BOLD, 14));
+            b.setFont(Theme.font(Font.BOLD, 16));
             b.setBorder(new EmptyBorder(8, 30, 8, 30));
             final int idx = i;
             b.addActionListener(e -> {

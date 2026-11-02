@@ -30,9 +30,9 @@ class LeaderboardPanel extends JPanel {
         JPanel bt = new JPanel();
         bt.setOpaque(false);
         bt.setLayout(new BoxLayout(bt, BoxLayout.Y_AXIS));
-        bt.add(Theme.label("Hall of Champions", Font.BOLD, 20, Theme.TEXT));
+        bt.add(Theme.label("Hall of Champions", Theme.display(28), Theme.TEXT));
         bt.add(Box.createVerticalStrut(6));
-        bt.add(Theme.label("Every fish counts. Climb to the top!", Font.PLAIN, 13, Theme.MUTED));
+        bt.add(Theme.label("Every fish counts. Climb to the top!", Font.BOLD, 14, Theme.MUTED));
         banner.add(bt, BorderLayout.WEST);
         add(banner, BorderLayout.NORTH);
 
@@ -44,7 +44,7 @@ class LeaderboardPanel extends JPanel {
         JPanel rows = new JPanel(new GridLayout(Math.max(top.size(), 1), 1, 0, 4));
         rows.setOpaque(false);
         if (top.isEmpty()) {
-            rows.add(Theme.label("No scores yet – finish a Fish Challenge to set your record!", Font.PLAIN, 14, Theme.MUTED));
+            rows.add(Theme.label("No scores yet – finish a Fish Challenge to set your record!", Font.BOLD, 15, Theme.MUTED));
         }
         int rank = 1;
         for (ScoreEntry e : top) {
@@ -64,8 +64,8 @@ class LeaderboardPanel extends JPanel {
         r.setBackground(new Color(0xE9, 0xF3, 0xFC));
         r.setBorder(new EmptyBorder(header ? 4 : 11, 12, header ? 4 : 11, 12));
         for (String s : new String[] { a, b, c, d }) {
-            JLabel l = header ? Theme.label(s, Font.BOLD, 11, Theme.MUTED)
-                    : Theme.label(s, s.equals(b) ? Font.BOLD : Font.PLAIN, 14, Theme.TEXT);
+            JLabel l = header ? Theme.label(s, Font.BOLD, 14, Theme.MUTED)
+                    : Theme.label(s, Font.BOLD, 15, Theme.TEXT);
             l.setHorizontalAlignment(SwingConstants.LEFT);
             r.add(l);
         }

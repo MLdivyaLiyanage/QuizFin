@@ -27,13 +27,13 @@ class ResultPanel extends JPanel {
         c.gridwidth = 2;
         c.insets = new Insets(4, 0, 4, 0);
 
-        javax.swing.JLabel verdict = Theme.label(verdict(percent), Font.BOLD, 24, Theme.TEXT);
+        javax.swing.JLabel verdict = Theme.label(verdict(percent), Theme.display(28), Theme.TEXT);
         verdict.setHorizontalAlignment(SwingConstants.CENTER);
         card.add(verdict, c);
-        card.add(Theme.label("Final score", Font.PLAIN, 13, Theme.MUTED), c);
-        javax.swing.JLabel big = Theme.label(score, Font.BOLD, 48, Theme.PRIMARY);
+        card.add(Theme.label("Final score", Theme.medium(14), Theme.MUTED), c);
+        javax.swing.JLabel big = Theme.label(score, Theme.display(36), Theme.PRIMARY);
         card.add(big, c);
-        card.add(Theme.label(detail, Font.PLAIN, 14, Theme.TEXT), c);
+        card.add(Theme.label(detail, Theme.medium(15), Theme.TEXT), c);
 
         c.gridwidth = 1;
         c.insets = new Insets(26, 6, 0, 6);

@@ -34,11 +34,11 @@ class DashboardPanel extends JPanel {
         banner.setPreferredSize(new Dimension(0, 150));
         banner.setBorder(new EmptyBorder(22, 26, 18, 26));
         JPanel text = vbox();
-        text.add(Theme.label("Choose your next challenge", Font.BOLD, 20, Theme.TEXT));
+        text.add(Theme.label("Choose your next challenge", Theme.display(26), Theme.TEXT));
         text.add(Box.createVerticalStrut(6));
-        text.add(Theme.label("Play either game, or complete a quiz followed by matching fish rounds!", Font.PLAIN, 12,
+        text.add(Theme.label("Play a quiz, a fish challenge, or both.", Theme.medium(14),
                 Theme.MUTED));
-        banner.add(text, BorderLayout.WEST);
+        banner.add(text, BorderLayout.CENTER);
         JComponent art = new JComponent() {
             private static final long serialVersionUID = 1L;
             @Override
@@ -52,7 +52,7 @@ class DashboardPanel extends JPanel {
                 g.dispose();
             }
         };
-        art.setPreferredSize(new Dimension(190, 110));
+        art.setPreferredSize(new Dimension(150, 110));
         banner.add(art, BorderLayout.EAST);
         add(banner, BorderLayout.NORTH);
 
@@ -62,7 +62,7 @@ class DashboardPanel extends JPanel {
         // stats
         JPanel stats = new JPanel(new GridLayout(1, 3, 16, 0));
         stats.setOpaque(false);
-        stats.setPreferredSize(new Dimension(0, 88));
+        stats.setPreferredSize(new Dimension(0, 110));
         stats.add(stat("Games available", "02"));
         JComponent fishRounds = stat("Fish rounds",
                 "<html>" + GameEngine.ROUNDS + " rounds by default<br>Matches quiz length</html>", 14);
@@ -74,10 +74,10 @@ class DashboardPanel extends JPanel {
         // game cards
         JPanel games = new JPanel(new GridLayout(1, 2, 16, 0));
         games.setOpaque(false);
-        games.setPreferredSize(new Dimension(0, 232));
-        games.add(gameCard(false, "General Knowledge Quiz", "Categories • Difficulty • Timed questions",
+        games.setPreferredSize(new Dimension(0, 280));
+        games.add(gameCard(false, "General Knowledge Quiz", "Pick a category and difficulty",
                 "Start General Quiz", openQuiz));
-        games.add(gameCard(true, "Fish Challenge", "Count the fish and earn bonus points!",
+        games.add(gameCard(true, "Fish Challenge", "Count fish and earn bonus points",
                 "Play Fish Game", openFish));
         JPanel gameArea = new JPanel(new BorderLayout());
         gameArea.setOpaque(false);
@@ -94,16 +94,16 @@ class DashboardPanel extends JPanel {
     }
 
     private static JComponent stat(String label, String value) {
-        return stat(label, value, 26);
+        return stat(label, value, 32);
     }
 
     private static JComponent stat(String label, String value, int valueFontSize) {
         RoundPanel card = new RoundPanel(Theme.CARD, 16, new BorderLayout());
         card.setBorder(new EmptyBorder(16, 20, 16, 20));
         JPanel p = vbox();
-        p.add(Theme.label(label, Font.PLAIN, 11, Theme.MUTED));
+        p.add(Theme.label(label, Theme.medium(14), Theme.MUTED));
         p.add(Box.createVerticalStrut(4));
-        p.add(Theme.label(value, Font.BOLD, valueFontSize, Theme.TEXT));
+        p.add(Theme.label(value, valueFontSize >= 28 ? Theme.display(valueFontSize) : Theme.medium(valueFontSize), Theme.TEXT));
         card.add(p, BorderLayout.CENTER);
         return card;
     }
@@ -145,16 +145,16 @@ class DashboardPanel extends JPanel {
         badgeRow.add(badge, fish ? BorderLayout.EAST : BorderLayout.WEST);
         p.add(badgeRow);
         p.add(Box.createVerticalStrut(14));
-        JComponent t = Theme.label(name, Font.BOLD, 17, Theme.TEXT);
+        JComponent t = Theme.label(name, Theme.display(22), Theme.TEXT);
         t.setAlignmentX(0f);
         p.add(t);
         p.add(Box.createVerticalStrut(6));
-        JComponent d = Theme.label(desc, Font.PLAIN, 11, Theme.MUTED);
+        JComponent d = Theme.label(desc, Theme.medium(13), Theme.MUTED);
         d.setAlignmentX(0f);
         p.add(d);
         p.add(Box.createVerticalStrut(20));
         RoundButton b = new RoundButton(button);
-        b.setFont(Theme.font(Font.BOLD, 11));
+        b.setFont(Theme.font(Font.BOLD, 16));
         b.setAlignmentX(0f);
         b.addActionListener(e -> action.run());
         p.add(b);

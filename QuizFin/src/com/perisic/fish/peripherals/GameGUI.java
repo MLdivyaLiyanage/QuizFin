@@ -38,8 +38,8 @@ public class GameGUI extends JFrame {
     private final transient Session session;
     private final transient AppServices services;
     private final JPanel content = new JPanel(new BorderLayout());
-    private final JLabel title = Theme.label("", Font.BOLD, 23, Theme.TEXT);
-    private final JLabel subtitle = Theme.label("", Font.PLAIN, 11, Theme.MUTED);
+    private final JLabel title = Theme.label("", Theme.display(28), Theme.TEXT);
+    private final JLabel subtitle = Theme.label("", Theme.nunito(Font.PLAIN, 14), Theme.MUTED);
     private final Map<String, RoundButton> nav = new LinkedHashMap<>();
 
     /** Default player (testing without login). */
@@ -53,8 +53,8 @@ public class GameGUI extends JFrame {
         this.session = session;
         this.services = services;
         this.player = session.username;
-        setSize(1000, 740);
-        setMinimumSize(new Dimension(980, 640));
+        setSize(1200, 840);
+        setMinimumSize(new Dimension(1100, 760));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -84,13 +84,14 @@ public class GameGUI extends JFrame {
     private JComponent buildSidebar() {
         JPanel side = new JPanel();
         side.setBackground(Theme.NAVY);
-        side.setPreferredSize(new Dimension(188, 0));
+        side.setPreferredSize(new Dimension(216, 0));
         side.setLayout(new BoxLayout(side, BoxLayout.Y_AXIS));
         side.setBorder(new EmptyBorder(24, 14, 18, 14));
 
-        JLabel brand = Theme.label("● QUIZ MASTER", Font.BOLD, 16, Color.WHITE);
+        JLabel brand = Theme.label("QUIZFIN", Theme.display(34), Color.WHITE);
+        brand.setIcon(Theme.symbolIcon("●", Color.WHITE, 16));
         brand.setAlignmentX(0f);
-        JLabel tag = Theme.label("Learn • Play • Win", Font.PLAIN, 9, new Color(0x9F, 0xB4, 0xCC));
+        JLabel tag = Theme.label("Learn • Play • Win", Theme.nunito(Font.PLAIN, 13), new Color(0x9F, 0xB4, 0xCC));
         tag.setAlignmentX(0f);
         side.add(brand);
         side.add(Box.createVerticalStrut(4));
@@ -116,12 +117,15 @@ public class GameGUI extends JFrame {
     }
 
     private void addNav(JPanel side, String key, String text, Runnable action) {
-        RoundButton b = new RoundButton(text);
-        b.setFont(Theme.font(Font.BOLD, 11));
+        int symbolEnd = text.offsetByCodePoints(0, 1);
+        RoundButton b = new RoundButton(text.substring(symbolEnd).trim());
+        b.setIcon(Theme.symbolIcon(text.substring(0, symbolEnd), Color.WHITE, 12));
+        b.setIconTextGap(6);
+        b.setFont(Theme.font(Font.BOLD, 15));
         b.setBorder(new EmptyBorder(10, 12, 10, 12));
         b.setHorizontalAlignment(SwingConstants.LEFT);
         b.setAlignmentX(0f);
-        b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
         b.setColors(Theme.NAVY, null, Color.WHITE);
         b.addActionListener(e -> action.run());
         nav.put(key, b);
@@ -192,16 +196,16 @@ public class GameGUI extends JFrame {
         av.add(avatar);
         chip.add(av, BorderLayout.WEST);
         if (header) {
-            chip.add(Theme.label("Hello, " + player + "!", Font.BOLD, 11, Theme.TEXT), BorderLayout.CENTER);
+            chip.add(Theme.label("Hello, " + player + "!", Font.BOLD, 13, Theme.TEXT), BorderLayout.CENTER);
         } else {
             JPanel names = new JPanel();
             names.setOpaque(false);
             names.setLayout(new BoxLayout(names, BoxLayout.Y_AXIS));
-            names.add(Theme.label(player, Font.BOLD, 11, Color.WHITE));
-            names.add(Theme.label("Player account", Font.PLAIN, 9, new Color(0x9F, 0xB4, 0xCC)));
+            names.add(Theme.label(player, Font.BOLD, 14, Color.WHITE));
+            names.add(Theme.label("Player account", Theme.nunito(Font.PLAIN, 13), new Color(0x9F, 0xB4, 0xCC)));
             chip.add(names, BorderLayout.CENTER);
             chip.setAlignmentX(0f);
-            chip.setMaximumSize(new Dimension(Integer.MAX_VALUE, 54));
+            chip.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
         }
         return chip;
     }

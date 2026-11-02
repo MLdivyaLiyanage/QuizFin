@@ -29,13 +29,13 @@ class QuizPanel extends JPanel {
     private final GameGUI frame;
     private final QuizEngine engine;
 
-    private final JLabel counter = Theme.label("", Font.BOLD, 15, Theme.TEXT);
-    private final JLabel scoreLabel = Theme.label("", Font.BOLD, 15, Theme.PRIMARY);
+    private final JLabel counter = Theme.label("", Theme.medium(16), Theme.TEXT);
+    private final JLabel scoreLabel = Theme.label("", Theme.display(28), Theme.PRIMARY);
     private final JProgressBar progress = new JProgressBar(0, 100);
-    private final JLabel meta = Theme.label("", Font.BOLD, 11, Theme.PRIMARY);
+    private final JLabel meta = Theme.label("", Theme.medium(13), Theme.PRIMARY);
     private final JTextArea questionText = new JTextArea();
     private final JPanel optionsGrid = new JPanel(new GridLayout(2, 2, 14, 14));
-    private final JLabel feedback = Theme.label(" ", Font.PLAIN, 13, Theme.MUTED);
+    private final JLabel feedback = Theme.label(" ", Theme.nunito(Font.PLAIN, 14), Theme.MUTED);
     private final RoundButton next = new RoundButton("Next Question");
     private final List<RoundButton> optionButtons = new ArrayList<>();
     private boolean answered = false;
@@ -74,7 +74,7 @@ class QuizPanel extends JPanel {
         questionText.setOpaque(false);
         questionText.setLineWrap(true);
         questionText.setWrapStyleWord(true);
-        questionText.setFont(Theme.font(Font.BOLD, 20));
+        questionText.setFont(Theme.nunito(Font.BOLD, 22));
         questionText.setForeground(Theme.TEXT);
         questionText.setAlignmentX(0f);
         head.add(questionText);
@@ -148,12 +148,12 @@ class QuizPanel extends JPanel {
         char letter = 'A';
         for (String opt : q.options) {
             RoundButton b = new RoundButton(
-                    "<html><body style='width:300px'><b>" + letter + "</b> &nbsp;&nbsp; " + Theme.esc(opt)
+                    "<html><body style='width:240px'><b>" + letter + "</b> &nbsp;&nbsp; " + Theme.esc(opt)
                             + "</body></html>");
             b.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-            b.setFont(Theme.font(Font.PLAIN, 14));
+            b.setFont(Theme.medium(16));
             b.setColors(Theme.CHIP, Theme.CHIP_BORDER, Theme.TEXT);
-            b.setPreferredSize(new Dimension(300, 60));
+            b.setPreferredSize(new Dimension(300, 84));
             b.addActionListener(e -> onAnswer(opt, b));
             optionButtons.add(b);
             optionsGrid.add(b);

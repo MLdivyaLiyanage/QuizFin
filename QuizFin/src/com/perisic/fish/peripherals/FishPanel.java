@@ -29,11 +29,11 @@ class FishPanel extends JPanel {
     private final GameGUI frame;
     private final GameEngine engine;
 
-    private final JLabel roundLabel = Theme.label("", Font.BOLD, 15, Theme.TEXT);
-    private final JLabel streakLabel = Theme.label("Streak: 0", Font.BOLD, 15, Theme.ORANGE);
-    private final JLabel scoreLabel = Theme.label("Score: 0 pts", Font.BOLD, 15, Theme.PRIMARY);
+    private final JLabel roundLabel = Theme.label("", Theme.nunitoSemiBold(16), Theme.TEXT);
+    private final JLabel streakLabel = Theme.label("Streak: 0", Theme.nunitoSemiBold(16), Theme.ORANGE);
+    private final JLabel scoreLabel = Theme.label("Score: 0 pts", Theme.display(28), Theme.PRIMARY);
     private final JLabel imageLabel = new JLabel("Loading fish...", SwingConstants.CENTER);
-    private final JLabel feedback = Theme.label(" ", Font.BOLD, 14, Theme.MUTED);
+    private final JLabel feedback = Theme.label(" ", Theme.nunitoSemiBold(15), Theme.MUTED);
     private final RoundButton[] digits = new RoundButton[10];
     private final RoundButton retry = new RoundButton("Retry");
     private boolean accepting = false;
@@ -58,9 +58,9 @@ class FishPanel extends JPanel {
         // image area
         RoundPanel water = new RoundPanel(Theme.SKY, new BorderLayout());
         water.setBorder(new EmptyBorder(14, 20, 14, 20));
-        water.add(Theme.label("FISH API • COUNTING CHALLENGE", Font.BOLD, 11, Theme.PRIMARY),
+        water.add(Theme.label("COUNT THE FISH", Theme.nunitoSemiBold(14), Theme.PRIMARY),
                 BorderLayout.NORTH);
-        imageLabel.setFont(Theme.font(Font.PLAIN, 14));
+        imageLabel.setFont(Theme.nunito(Font.PLAIN, 15));
         imageLabel.setForeground(Theme.MUTED);
         water.add(imageLabel, BorderLayout.CENTER);
         add(water, BorderLayout.CENTER);
@@ -70,7 +70,7 @@ class FishPanel extends JPanel {
         answers.setBorder(new EmptyBorder(18, 22, 16, 22));
         JPanel head = new JPanel(new BorderLayout());
         head.setOpaque(false);
-        head.add(Theme.label("How many fish can you see?", Font.BOLD, 17, Theme.TEXT), BorderLayout.WEST);
+        head.add(Theme.label("How many fish can you see?", Theme.display(26), Theme.TEXT), BorderLayout.WEST);
         retry.setVisible(false);
         retry.addActionListener(e -> loadNext());
         head.add(retry, BorderLayout.EAST);
@@ -80,7 +80,7 @@ class FishPanel extends JPanel {
         row.setOpaque(false);
         for (int i = 0; i < 10; i++) {
             RoundButton b = new RoundButton(String.valueOf(i));
-            b.setFont(Theme.font(Font.BOLD, 16));
+            b.setFont(Theme.nunitoSemiBold(18));
             b.setColors(Theme.CHIP, Theme.CHIP_BORDER, Theme.TEXT);
             b.setPreferredSize(new Dimension(50, 46));
             final int n = i;
@@ -99,7 +99,7 @@ class FishPanel extends JPanel {
         JLabel rules = Theme.label("Correct +" + GameEngine.CORRECT_POINTS + " • Speed bonus +"
                         + GameEngine.SPEED_BONUS + " (within " + GameEngine.SPEED_LIMIT_MS / 1000 + "s) • Streak bonus +"
                         + GameEngine.STREAK_BONUS + " (" + GameEngine.STREAK_MIN + "+ in a row) • Wrong = 0",
-                Font.PLAIN, 11, Theme.MUTED);
+                Theme.nunito(Font.PLAIN, 13), Theme.MUTED);
         rules.setAlignmentX(0f);
         foot.add(rules);
         answers.add(foot, BorderLayout.SOUTH);
