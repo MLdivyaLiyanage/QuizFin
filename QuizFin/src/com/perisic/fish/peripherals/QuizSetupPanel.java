@@ -7,21 +7,12 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.BasicStroke;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.Box;
+import javax.swing.ButtonGroup;
 import javax.swing.AbstractAction;
 import javax.swing.KeyStroke;
 import javax.swing.BoxLayout;
@@ -59,8 +50,8 @@ class QuizSetupPanel extends JPanel {
     private final int[] counts = { 5, 10, 15 };
     private int difficultyIdx = 0;
     private int countIdx = 1;
-    private final List<RoundButton> diffButtons = new ArrayList<>();
-    private final List<RoundButton> countButtons = new ArrayList<>();
+    private final List<QuizChoiceButton> diffButtons = new ArrayList<>();
+    private final List<QuizChoiceButton> countButtons = new ArrayList<>();
 
     QuizSetupPanel(GameGUI frame) {
         super(new BorderLayout(0, 18));
@@ -121,10 +112,11 @@ class QuizSetupPanel extends JPanel {
         card.add(categoryBox, c);
         c.gridy++;
         c.insets = new Insets(14, 0, 0, 0);
-        card.add(fieldHeading("Difficulty", "Easy: 10 pts / Medium: 15 pts / Hard: 20 pts"), c);
+        card.add(fieldHeading("Difficulty", "Choose one level"), c);
         c.gridy++;
         c.insets = new Insets(6, 0, 0, 0);
-        card.add(chipRow(difficulties, diffButtons, 0, i -> { difficultyIdx = i; updateSummary(); }), c);
+        card.add(chipRow(difficulties, diffButtons, 0, i -> { difficultyIdx = i; updateSummary(); },
+                new String[] { "Correct answer: +10", "Correct answer: +15", "Correct answer: +20" }), c);
         c.gridy++;
         c.insets = new Insets(14, 0, 0, 0);
         card.add(fieldHeading("Number of questions", "Choose a short or longer quiz"), c);
@@ -177,18 +169,26 @@ class QuizSetupPanel extends JPanel {
         void chosen(int i);
     }
 
-    private JComponent chipRow(String[] labels, List<RoundButton> store, int selected, IndexHandler h) {
+    private JComponent chipRow(String[] labels, List<QuizChoiceButton> store, int selected, IndexHandler h) {
+        return chipRow(labels, store, selected, h, null);
+    }
+
+    private JComponent chipRow(String[] labels, List<QuizChoiceButton> store, int selected, IndexHandler h,
+            String[] descriptions) {
         JPanel row = new JPanel(new GridLayout(1, labels.length, 12, 0));
         row.setOpaque(false);
-        row.setPreferredSize(new Dimension(0, 48));
+        ButtonGroup group = new ButtonGroup();
         for (int i = 0; i < labels.length; i++) {
-            RoundButton b = new ChoiceButton(labels[i]);
-            b.setFont(Theme.font(Font.BOLD, 16));
-            b.setBorder(new EmptyBorder(8, 30, 8, 30));
+            String description = descriptions == null ? null : descriptions[i];
+            QuizChoiceButton b = new QuizChoiceButton(labels[i], description);
+            group.add(b);
+            if (description != null) {
+                b.getAccessibleContext().setAccessibleName(labels[i] + ", " + description);
+                b.setToolTipText(description);
+            }
             final int idx = i;
             b.addActionListener(e -> {
                 h.chosen(idx);
-                paintChips(store, idx);
             });
             store.add(b);
             row.add(b);
@@ -199,7 +199,7 @@ class QuizSetupPanel extends JPanel {
                     private static final long serialVersionUID = 1L;
                     @Override
                     public void actionPerformed(ActionEvent event) {
-                        RoundButton next = store.get(Math.floorMod(idx + direction, store.size()));
+                        QuizChoiceButton next = store.get(Math.floorMod(idx + direction, store.size()));
                         if (next.isEnabled()) {
                             next.requestFocusInWindow();
                             next.doClick(0);
@@ -208,72 +208,8 @@ class QuizSetupPanel extends JPanel {
                 });
             }
         }
-        paintChips(store, selected);
+        store.get(selected).setSelected(true);
         return row;
-    }
-
-    /** Keeps selection visible while drawing keyboard focus around the whole choice. */
-    private static final class ChoiceButton extends RoundButton {
-        private static final long serialVersionUID = 1L;
-        private boolean keyboardFocus;
-
-        ChoiceButton(String text) {
-            super(text);
-            setFocusPainted(false);
-            addFocusListener(new FocusAdapter() {
-                @Override public void focusGained(FocusEvent event) {
-                    keyboardFocus = event.getCause() != FocusEvent.Cause.MOUSE_EVENT;
-                    repaint();
-                }
-                @Override public void focusLost(FocusEvent event) {
-                    keyboardFocus = false;
-                    repaint();
-                }
-            });
-            addMouseListener(new MouseAdapter() {
-                @Override public void mousePressed(MouseEvent event) {
-                    keyboardFocus = false;
-                    repaint();
-                }
-            });
-            addKeyListener(new KeyAdapter() {
-                @Override public void keyPressed(KeyEvent event) {
-                    keyboardFocus = true;
-                    repaint();
-                }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            super.paintComponent(graphics);
-            Graphics2D g = (Graphics2D) graphics.create();
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            if (isSelected()) {
-                g.setColor(isEnabled() ? Theme.PRIMARY : Theme.MUTED);
-                g.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                int middle = getHeight() / 2;
-                g.drawLine(12, middle, 16, middle + 4);
-                g.drawLine(16, middle + 4, 24, middle - 4);
-            }
-            if (hasFocus() && keyboardFocus && isEnabled()) {
-                g.setColor(Theme.NAVY);
-                g.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND,
-                        1f, new float[] { 3f, 3f }, 0f));
-                g.drawRoundRect(4, 4, getWidth() - 9, getHeight() - 9, 9, 9);
-            }
-            g.dispose();
-        }
-    }
-
-    private static void paintChips(List<RoundButton> chips, int selected) {
-        for (int i = 0; i < chips.size(); i++) {
-            boolean on = i == selected;
-            chips.get(i).setSelected(on);
-            chips.get(i).getAccessibleContext().setAccessibleDescription(on ? "Selected" : "Not selected");
-            chips.get(i).setColors(on ? Theme.CHIP_SEL : Theme.CHIP, on ? Theme.PRIMARY : Theme.CHIP_BORDER,
-                    on ? Theme.PRIMARY : Theme.TEXT);
-        }
     }
 
     private void loadCategories() {
@@ -344,7 +280,7 @@ class QuizSetupPanel extends JPanel {
         loading = busy;
         start.setEnabled(!busy);
         categoryBox.setEnabled(!busy);
-        for (RoundButton b : diffButtons) b.setEnabled(!busy);
-        for (RoundButton b : countButtons) b.setEnabled(!busy);
+        for (QuizChoiceButton b : diffButtons) b.setEnabled(!busy);
+        for (QuizChoiceButton b : countButtons) b.setEnabled(!busy);
     }
 }
