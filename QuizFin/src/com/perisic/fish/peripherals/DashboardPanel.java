@@ -8,7 +8,6 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.BasicStroke;
 import java.awt.RenderingHints;
-import java.awt.geom.Path2D;
 import java.awt.GridLayout;
 
 import javax.swing.Box;
@@ -49,7 +48,7 @@ class DashboardPanel extends JPanel {
                 double scale = Math.min(getWidth() / 200.0, getHeight() / 140.0);
                 g.translate((getWidth() - 200 * scale) / 2, (getHeight() - 140 * scale) / 2);
                 g.scale(scale, scale);
-                paintBannerArt(g);
+                Theme.paintBannerArt(g);
                 g.dispose();
             }
         };
@@ -85,70 +84,6 @@ class DashboardPanel extends JPanel {
         gameArea.add(games, BorderLayout.NORTH);
         center.add(gameArea, BorderLayout.CENTER);
         add(center, BorderLayout.CENTER);
-    }
-
-    /** Resolution-independent book, quiz and fish illustration from the reference. */
-    private static void paintBannerArt(Graphics2D g) {
-        g.setColor(new Color(0xBEE6F3));
-        g.fillRect(62, 4, 126, 118);
-        g.fillOval(4, 116, 176, 18);
-        g.setColor(new Color(0xFFD16B));
-        g.fillOval(13, 16, 49, 49);
-        g.setColor(new Color(0xFFF4D2));
-        g.setStroke(new BasicStroke(4));
-        g.drawOval(13, 16, 49, 49);
-        g.setColor(Theme.TEXT);
-        g.setFont(Theme.font(Font.BOLD, 34));
-        g.drawString("?", 28, 51);
-        g.setColor(new Color(0x6CD2E1));
-        g.fillOval(114, 12, 51, 51);
-        g.setColor(new Color(0xE9FCFF));
-        g.setStroke(new BasicStroke(3));
-        g.drawOval(114, 12, 51, 51);
-        g.setColor(new Color(0x2484B5));
-        g.fillArc(117, 36, 47, 28, 180, 180);
-        g.fillRect(117, 42, 47, 17);
-        g.setColor(Color.WHITE);
-        g.drawOval(132, 30, 19, 19);
-        g.drawLine(148, 46, 158, 56);
-        g.setColor(new Color(0xFFD16B));
-        g.fillOval(0, 31, 9, 9);
-        g.fillOval(171, 20, 9, 9);
-        g.setColor(Color.WHITE);
-        g.fillOval(83, 44, 6, 6);
-        g.setColor(new Color(0x7CCCE4));
-        g.fillOval(81, 5, 8, 8);
-
-        Path2D leftPage = new Path2D.Double();
-        leftPage.moveTo(0, 78);
-        leftPage.quadTo(38, 60, 79, 83);
-        leftPage.lineTo(79, 124);
-        leftPage.quadTo(39, 102, 0, 120);
-        leftPage.closePath();
-        Path2D rightPage = new Path2D.Double();
-        rightPage.moveTo(79, 83);
-        rightPage.quadTo(118, 60, 160, 78);
-        rightPage.lineTo(160, 120);
-        rightPage.quadTo(119, 102, 79, 124);
-        rightPage.closePath();
-        g.setColor(Color.WHITE);
-        g.fill(leftPage);
-        g.setColor(new Color(0xEAF7FE));
-        g.fill(rightPage);
-        g.setColor(new Color(0x519DCD));
-        g.setStroke(new BasicStroke(1.7f));
-        g.draw(leftPage);
-        g.draw(rightPage);
-        g.setColor(new Color(0x9CC8E4));
-        g.setStroke(new BasicStroke(1.2f));
-        for (int y = 88; y <= 112; y += 8) {
-            Path2D lines = new Path2D.Double();
-            lines.moveTo(10, y);
-            lines.quadTo(38, y - 9, 68, y + 3);
-            lines.moveTo(90, y + 3);
-            lines.quadTo(119, y - 9, 150, y);
-            g.draw(lines);
-        }
     }
 
     private static JPanel vbox() {
