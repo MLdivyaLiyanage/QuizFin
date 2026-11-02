@@ -221,18 +221,12 @@ public class GameGUI extends JFrame {
         content.repaint();
     }
 
-    /** Show the dashboard. */
-//    public void showDashboard() {
-//        setPage("dashboard", "Dashboard", "Choose your next challenge and start collecting points",
-//                new DashboardPanel(this));
-//    }
-
-
+    /** Show the dashboard with the current player's saved best score. */
     public void showDashboard() {
         setPage(
                 "dashboard", "Dashboard", "Choose your next challenge and start collecting points",
                 new DashboardPanel(
-                        0, this::showQuizSetup, this::startFish
+                        services.scores.best(player), this::showQuizSetup, this::startFish
                 )
         );
     }
