@@ -29,6 +29,7 @@ class FishPanel extends JPanel {
 
     private final GameGUI frame;
     private final GameEngine engine;
+    private final Integer quizScore;
 
     private final JLabel roundLabel = Theme.label("", Theme.nunitoSemiBold(16), Theme.TEXT);
     private final JLabel streakLabel = Theme.label("Streak: 0", Theme.nunitoSemiBold(16), Theme.ORANGE);
@@ -40,8 +41,13 @@ class FishPanel extends JPanel {
     private boolean accepting = false;
 
     FishPanel(GameGUI frame, int totalRounds) {
+        this(frame, totalRounds, null);
+    }
+
+    FishPanel(GameGUI frame, int totalRounds, Integer quizScore) {
         super(new BorderLayout(0, 16));
         this.frame = frame;
+        this.quizScore = quizScore;
         this.engine = new GameEngine(frame.getPlayer(), frame.services().games, totalRounds);
         roundLabel.setText(String.format("Round %02d / %02d", 1, engine.getTotalRounds()));
         setOpaque(false);
@@ -199,8 +205,7 @@ class FishPanel extends JPanel {
             if (!SwingUtilities.isDescendingFrom(FishPanel.this, frame)) return;
             resetDigits();
             if (engine.isFinished()) {
-                frame.services().scores.add(engine.getPlayer(), engine.getScore());
-                frame.showFishResult(engine);
+                frame.showFishResult(engine, quizScore);
             } else {
                 loadNext();
             }

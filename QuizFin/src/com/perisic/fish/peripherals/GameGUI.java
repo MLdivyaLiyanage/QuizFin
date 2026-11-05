@@ -25,6 +25,7 @@ import javax.swing.border.EmptyBorder;
 import com.perisic.fish.auth.Session;
 import com.perisic.fish.engine.GameEngine;
 import com.perisic.fish.engine.QuizEngine;
+import com.perisic.fish.engine.ScoreEntry;
 
 /**
  * Main QuizFin window: navy sidebar (Dashboard, General Quiz, Fish Challenge,
@@ -40,7 +41,7 @@ public class GameGUI extends JFrame {
     private final JPanel content = new JPanel(new BorderLayout());
     private final JLabel title = Theme.label("", Theme.display(28), Theme.TEXT);
     private final JLabel subtitle = Theme.label("", Theme.nunito(Font.PLAIN, 14), Theme.MUTED);
-    private final Map<String, JLabel> nav = new LinkedHashMap<>();
+    private final Map<String, RoundButton> nav = new LinkedHashMap<>();
     private final RoundButton back = new RoundButton("Back");
     private Runnable backAction;
 
@@ -100,10 +101,10 @@ public class GameGUI extends JFrame {
         side.add(tag);
         side.add(Box.createVerticalStrut(28));
 
-        addNav(side, "dashboard", "▦ Dashboard");
-        addNav(side, "quiz", "◇ General Quiz");
-        addNav(side, "fish", "◉ Fish Challenge");
-        addNav(side, "board", "★ Leaderboard");
+        addNav(side, "dashboard", "▦ Dashboard", this::showDashboard);
+        addNav(side, "quiz", "◇ General Quiz", this::showQuizSetup);
+        addNav(side, "fish", "◉ Fish Challenge", this::startFish);
+        addNav(side, "board", "★ Leaderboard", this::showLeaderboard);
 
         side.add(Box.createVerticalGlue());
         RoundButton out = new RoundButton("Log out");
@@ -118,22 +119,10 @@ public class GameGUI extends JFrame {
         return side;
     }
 
-    /** Sidebar labels indicate the current page; navigation uses page controls. */
-    private void addNav(JPanel side, String key, String text) {
+    /** Clicking a sidebar item opens its page; the current page stays selected. */
+    private void addNav(JPanel side, String key, String text, Runnable action) {
         int symbolEnd = text.offsetByCodePoints(0, 1);
-        JLabel b = new JLabel(text.substring(symbolEnd).trim()) {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            protected void paintComponent(Graphics graphics) {
-                Graphics2D g = (Graphics2D) graphics.create();
-                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g.setColor(getBackground());
-                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
-                g.dispose();
-                super.paintComponent(graphics);
-            }
-        };
+        RoundButton b = new RoundButton(text.substring(symbolEnd).trim());
         b.setIcon(Theme.symbolIcon(text.substring(0, symbolEnd), Color.WHITE, 12));
         b.setIconTextGap(6);
         b.setFont(Theme.font(Font.BOLD, 15));
@@ -142,8 +131,10 @@ public class GameGUI extends JFrame {
         b.setAlignmentX(0f);
         b.setPreferredSize(new Dimension(188, 46));
         b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
-        b.setBackground(Theme.NAVY);
-        b.setForeground(Color.WHITE);
+        b.setColors(Theme.NAVY, null, Color.WHITE);
+        b.addActionListener(e -> {
+            if (!b.isSelected()) action.run();
+        });
         nav.put(key, b);
         side.add(b);
         side.add(Box.createVerticalStrut(6));
@@ -253,11 +244,11 @@ public class GameGUI extends JFrame {
         back.setVisible(parentPage != null);
         title.setText(t);
         subtitle.setText(sub);
-        for (Map.Entry<String, JLabel> e : nav.entrySet()) {
+        for (Map.Entry<String, RoundButton> e : nav.entrySet()) {
             boolean on = e.getKey().equals(navKey);
-            e.getValue().getAccessibleContext().setAccessibleDescription(on ? "Current page" : "");
-            e.getValue().setBackground(on ? Theme.NAV_ACTIVE : Theme.NAVY);
-            e.getValue().repaint();
+            e.getValue().setSelected(on);
+            e.getValue().getAccessibleContext().setAccessibleDescription(on ? "Current page" : "Open page");
+            e.getValue().setColors(on ? Theme.NAV_ACTIVE : Theme.NAVY, null, Color.WHITE);
         }
         content.removeAll();
         content.add(page, BorderLayout.CENTER);
@@ -289,29 +280,33 @@ public class GameGUI extends JFrame {
         if (!engine.isFinished()) {
             return;
         }
-        startFish(engine.getTotal());
+        startFish(engine.getTotal(), engine.getScore());
     }
 
     public void startFish() {
-        startFish(GameEngine.ROUNDS);
+        startFish(GameEngine.ROUNDS, null);
     }
 
-    private void startFish(int rounds) {
+    private void startFish(int rounds, Integer quizScore) {
         setPage("fish", "Fish Challenge", "Count the fish and earn bonus points • " + rounds + " rounds",
-                new FishPanel(this, rounds));
+                new FishPanel(this, rounds, quizScore));
     }
 
-    void showFishResult(GameEngine engine) {
+    void showFishResult(GameEngine engine, Integer quizScore) {
+        if (!engine.isFinished()) return;
+        ScoreEntry entry = new ScoreEntry(engine.getPlayer(), quizScore, engine.getScore(), System.currentTimeMillis());
+        services.scores.add(entry);
         int pct = engine.getCorrectCount() * 100 / engine.getTotalRounds();
+        String detail = entry.mode.label + " • "
+                + (quizScore == null ? "" : "Quiz: " + quizScore + " pts • ")
+                + "Fish: " + engine.getScore() + " pts";
         setPage("fish", "Challenge Complete", "Your score has been added to the leaderboard",
-                new ResultPanel(pct, engine.getScore() + " pts",
-                        engine.getCorrectCount() + " of " + engine.getTotalRounds() + " correct • best streak "
-                                + engine.getBestStreak(),
+                new ResultPanel(pct, entry.score + " pts", detail,
                         "Start New Quiz", this::showQuizSetup, "Leaderboard", this::showLeaderboard));
     }
 
     public void showLeaderboard() {
-        setPage("board", "Leaderboard", "Fish Challenge – who is leading the pack?", new LeaderboardPanel(this));
+        setPage("board", "Leaderboard", "Fish only and Quiz + Fish scores", new LeaderboardPanel(this));
     }
 
     // -------------------------------------------------------------- main
