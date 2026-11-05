@@ -12,6 +12,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
@@ -142,6 +143,7 @@ class FishPanel extends JPanel {
 
             @Override
             protected void done() {
+                if (!SwingUtilities.isDescendingFrom(FishPanel.this, frame)) return;
                 BufferedImage img = null;
                 try {
                     img = get();
@@ -194,6 +196,7 @@ class FishPanel extends JPanel {
         }
 
         Timer t = new Timer(1300, e -> {
+            if (!SwingUtilities.isDescendingFrom(FishPanel.this, frame)) return;
             resetDigits();
             if (engine.isFinished()) {
                 frame.services().scores.add(engine.getPlayer(), engine.getScore());

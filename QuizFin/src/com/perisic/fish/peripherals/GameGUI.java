@@ -40,7 +40,9 @@ public class GameGUI extends JFrame {
     private final JPanel content = new JPanel(new BorderLayout());
     private final JLabel title = Theme.label("", Theme.display(28), Theme.TEXT);
     private final JLabel subtitle = Theme.label("", Theme.nunito(Font.PLAIN, 14), Theme.MUTED);
-    private final Map<String, RoundButton> nav = new LinkedHashMap<>();
+    private final Map<String, JLabel> nav = new LinkedHashMap<>();
+    private final RoundButton back = new RoundButton("Back");
+    private Runnable backAction;
 
     /** Default player (testing without login). */
     public GameGUI() {
@@ -98,10 +100,10 @@ public class GameGUI extends JFrame {
         side.add(tag);
         side.add(Box.createVerticalStrut(28));
 
-        addNav(side, "dashboard", "▦ Dashboard", this::showDashboard);
-        addNav(side, "quiz", "◇ General Quiz", this::showQuizSetup);
-        addNav(side, "fish", "◉ Fish Challenge", this::startFish);
-        addNav(side, "board", "★ Leaderboard", this::showLeaderboard);
+        addNav(side, "dashboard", "▦ Dashboard");
+        addNav(side, "quiz", "◇ General Quiz");
+        addNav(side, "fish", "◉ Fish Challenge");
+        addNav(side, "board", "★ Leaderboard");
 
         side.add(Box.createVerticalGlue());
         RoundButton out = new RoundButton("Log out");
@@ -116,18 +118,32 @@ public class GameGUI extends JFrame {
         return side;
     }
 
-    private void addNav(JPanel side, String key, String text, Runnable action) {
+    /** Sidebar labels indicate the current page; navigation uses page controls. */
+    private void addNav(JPanel side, String key, String text) {
         int symbolEnd = text.offsetByCodePoints(0, 1);
-        RoundButton b = new RoundButton(text.substring(symbolEnd).trim());
+        JLabel b = new JLabel(text.substring(symbolEnd).trim()) {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(getBackground());
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
+                g.dispose();
+                super.paintComponent(graphics);
+            }
+        };
         b.setIcon(Theme.symbolIcon(text.substring(0, symbolEnd), Color.WHITE, 12));
         b.setIconTextGap(6);
         b.setFont(Theme.font(Font.BOLD, 15));
         b.setBorder(new EmptyBorder(10, 12, 10, 12));
         b.setHorizontalAlignment(SwingConstants.LEFT);
         b.setAlignmentX(0f);
+        b.setPreferredSize(new Dimension(188, 46));
         b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
-        b.setColors(Theme.NAVY, null, Color.WHITE);
-        b.addActionListener(e -> action.run());
+        b.setBackground(Theme.NAVY);
+        b.setForeground(Color.WHITE);
         nav.put(key, b);
         side.add(b);
         side.add(Box.createVerticalStrut(6));
@@ -158,7 +174,23 @@ public class GameGUI extends JFrame {
         titles.add(title);
         titles.add(Box.createVerticalStrut(2));
         titles.add(subtitle);
-        head.add(titles, BorderLayout.WEST);
+        back.setIcon(Theme.symbolIcon("←", Theme.PRIMARY, 18));
+        back.setIconTextGap(8);
+        back.setFont(Theme.medium(14));
+        back.setBorder(new EmptyBorder(8, 14, 8, 14));
+        back.setColors(Theme.CARD, Theme.CHIP_BORDER, Theme.PRIMARY);
+        back.getAccessibleContext().setAccessibleName("Go back");
+        back.addActionListener(e -> {
+            if (backAction != null) backAction.run();
+        });
+        JPanel backHolder = new JPanel(new BorderLayout());
+        backHolder.setOpaque(false);
+        backHolder.add(back, BorderLayout.NORTH);
+        JPanel heading = new JPanel(new BorderLayout(14, 0));
+        heading.setOpaque(false);
+        heading.add(backHolder, BorderLayout.WEST);
+        heading.add(titles, BorderLayout.CENTER);
+        head.add(heading, BorderLayout.CENTER);
         JPanel greeting = new JPanel(new BorderLayout());
         greeting.setOpaque(false);
         greeting.add(userChip(true), BorderLayout.NORTH);
@@ -213,11 +245,19 @@ public class GameGUI extends JFrame {
     // -------------------------------------------------------- navigation
 
     private void setPage(String navKey, String t, String sub, JComponent page) {
+        setPage(navKey, t, sub, page, "dashboard".equals(navKey) ? null : this::showDashboard);
+    }
+
+    private void setPage(String navKey, String t, String sub, JComponent page, Runnable parentPage) {
+        backAction = parentPage;
+        back.setVisible(parentPage != null);
         title.setText(t);
         subtitle.setText(sub);
-        for (Map.Entry<String, RoundButton> e : nav.entrySet()) {
+        for (Map.Entry<String, JLabel> e : nav.entrySet()) {
             boolean on = e.getKey().equals(navKey);
-            e.getValue().setColors(on ? Theme.NAV_ACTIVE : Theme.NAVY, null, Color.WHITE);
+            e.getValue().getAccessibleContext().setAccessibleDescription(on ? "Current page" : "");
+            e.getValue().setBackground(on ? Theme.NAV_ACTIVE : Theme.NAVY);
+            e.getValue().repaint();
         }
         content.removeAll();
         content.add(page, BorderLayout.CENTER);
@@ -242,7 +282,7 @@ public class GameGUI extends JFrame {
 
     void startQuiz(QuizEngine engine, String categoryName) {
         setPage("quiz", "General Quiz", "Answer the question and earn points",
-                new QuizPanel(this, engine));
+                new QuizPanel(this, engine), this::showQuizSetup);
     }
 
     void showQuizResult(QuizEngine engine) {

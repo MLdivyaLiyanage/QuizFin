@@ -92,8 +92,12 @@ final class Theme {
     private static InputStream openFont(String resource) throws IOException {
         InputStream bundled = Theme.class.getResourceAsStream(resource);
         if (bundled != null) return bundled;
-        // Also support plain javac output when running from the project root.
-        return Files.newInputStream(Path.of("src" + resource));
+        // Support plain javac output from either the checkout or inner project root.
+        for (Path sourceRoot : new Path[] { Path.of("QuizFin", "src"), Path.of("src") }) {
+            Path fontPath = sourceRoot.resolve(resource.substring(1));
+            if (Files.isRegularFile(fontPath)) return Files.newInputStream(fontPath);
+        }
+        throw new IOException("Font resource not found: " + resource);
     }
 
     static JLabel label(String text, int style, int size, Color color) {
