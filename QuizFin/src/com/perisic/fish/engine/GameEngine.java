@@ -1,6 +1,7 @@
 package com.perisic.fish.engine;
 
 import java.awt.image.BufferedImage;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Fish Challenge engine. One engine per player per play-through.
@@ -45,7 +46,7 @@ public class GameEngine {
     private final GameSource theGames;
     private final int totalRounds;
     private Game current = null;
-    private long roundStart = 0;
+    private long roundStartNanos;
 
     private int round = 0; // rounds started
     private int answered = 0; // rounds answered
@@ -100,8 +101,22 @@ public class GameEngine {
         }
         current = g;
         round++;
-        roundStart = System.currentTimeMillis();
+        roundStartNanos = System.nanoTime();
         return current.getImage();
+    }
+
+    /** Start the speed-bonus clock when the memory preview ends. */
+    public void startAnswering() {
+        if (current != null) roundStartNanos = System.nanoTime();
+    }
+
+    /** Time left for the speed bonus, measured against the scoring clock. */
+    public long getSpeedBonusRemainingMillis() {
+        return current == null ? 0 : Math.max(0, SPEED_LIMIT_MS - elapsedAnswerMillis());
+    }
+
+    private long elapsedAnswerMillis() {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - roundStartNanos);
     }
 
     /**
@@ -120,11 +135,11 @@ public class GameEngine {
             streak = 0;
             return new AnswerResult(false, solution, 0, 0, 0);
         }
-        long took = System.currentTimeMillis() - roundStart;
+        long took = elapsedAnswerMillis();
         streak++;
         correctCount++;
         bestStreak = Math.max(bestStreak, streak);
-        int speed = took <= SPEED_LIMIT_MS ? SPEED_BONUS : 0;
+        int speed = took < SPEED_LIMIT_MS ? SPEED_BONUS : 0;
         int streakPts = streak >= STREAK_MIN ? STREAK_BONUS : 0;
         AnswerResult r = new AnswerResult(true, solution, CORRECT_POINTS, speed, streakPts);
         score += r.total();

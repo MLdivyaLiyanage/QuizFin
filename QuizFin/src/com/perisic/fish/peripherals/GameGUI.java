@@ -288,7 +288,8 @@ public class GameGUI extends JFrame {
     }
 
     private void startFish(int rounds, Integer quizScore) {
-        setPage("fish", "Fish Challenge", "Count the fish and earn bonus points • " + rounds + " rounds",
+        setPage("fish", "Fish Memory Challenge", "Memorize for " + FishPanel.MEMORY_SECONDS
+                        + " seconds, then answer from memory • " + rounds + " rounds",
                 new FishPanel(this, rounds, quizScore));
     }
 
