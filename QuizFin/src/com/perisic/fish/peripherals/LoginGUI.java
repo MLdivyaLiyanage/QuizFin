@@ -1,7 +1,10 @@
 package com.perisic.fish.peripherals;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -10,23 +13,32 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.RenderingHints;
+import java.awt.event.KeyEvent;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import javax.imageio.ImageIO;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
+import javax.swing.Icon;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 import com.perisic.fish.auth.AuthException;
@@ -49,6 +61,8 @@ public class LoginGUI extends JFrame {
     private final JPasswordField pass = new JPasswordField(18);
     private final JCheckBox remember = new JCheckBox("Remember me");
     private final RoundButton blogin = new RoundButton("Login");
+    private final RoundButton createAccount = new RoundButton("Create account");
+    private final JLabel loginSubtitle = Theme.label("Sign in to continue your adventure", Font.PLAIN, 13, Theme.MUTED);
 
     LoginGUI(AppServices services) {
         super("QuizFin - Login");
@@ -67,13 +81,14 @@ public class LoginGUI extends JFrame {
         JPanel root = new JPanel(new BorderLayout());
         root.setPreferredSize(new Dimension(960, 640));
         root.add(buildBrand(), BorderLayout.WEST);
-        root.add(buildForm(txuser, pass, remember, blogin), BorderLayout.CENTER);
+        root.add(buildForm(), BorderLayout.CENTER);
         getContentPane().add(root, BorderLayout.CENTER);
         pack();
         setLocationRelativeTo(null);
 
         // events
         blogin.addActionListener(e -> doLogin());
+        createAccount.addActionListener(e -> doRegister());
         getRootPane().setDefaultButton(blogin); // Enter key logs in
 
         setVisible(true);
@@ -136,8 +151,7 @@ public class LoginGUI extends JFrame {
         }
     }
 
-    private static JPanel buildForm(JTextField txuser, JPasswordField pass,
-                                    JCheckBox remember, RoundButton blogin) {
+    private JPanel buildForm() {
         JPanel right = new JPanel(new GridBagLayout());
         right.setBackground(Theme.BG);
         JPanel form = new RoundPanel(Color.WHITE, 36, new GridBagLayout());
@@ -150,7 +164,7 @@ public class LoginGUI extends JFrame {
         c.insets = new Insets(3, 0, 3, 0);
 
         form.add(Theme.label("Welcome back!", Theme.display(28), Theme.TEXT), c);
-        form.add(Theme.label("Sign in to continue your adventure", Font.PLAIN, 13, Theme.MUTED), c);
+        form.add(loginSubtitle, c);
         c.insets = new Insets(24, 0, 5, 0);
         form.add(Theme.label("Username", Font.BOLD, 14, Theme.TEXT), c);
         c.insets = new Insets(3, 0, 3, 0);
@@ -167,10 +181,10 @@ public class LoginGUI extends JFrame {
         blogin.setFont(Theme.font(Font.BOLD, 16));
         blogin.setPreferredSize(new Dimension(340, 44));
         form.add(blogin, c);
-        c.insets = new Insets(24, 0, 0, 0);
-        JLabel footer = Theme.label("Ready to play? Your adventure awaits.", Font.PLAIN, 13, Theme.MUTED);
-        footer.setHorizontalAlignment(JLabel.CENTER);
-        form.add(footer, c);
+        c.insets = new Insets(10, 0, 0, 0);
+        createAccount.setColors(Theme.CHIP, Theme.CHIP_BORDER, Theme.PRIMARY);
+        createAccount.setPreferredSize(new Dimension(340, 40));
+        form.add(createAccount, c);
         right.add(form);
         return right;
     }
@@ -185,7 +199,60 @@ public class LoginGUI extends JFrame {
         input.setPreferredSize(new Dimension(340, 44));
         input.setMinimumSize(new Dimension(340, 44));
         input.add(field, BorderLayout.CENTER);
+        if (field instanceof JPasswordField password) {
+            input.add(passwordVisibilityButton(password), BorderLayout.EAST);
+        }
         return input;
+    }
+
+    private static JToggleButton passwordVisibilityButton(JPasswordField password) {
+        char mask = password.getEchoChar();
+        JToggleButton toggle = new JToggleButton(new PasswordEyeIcon(false));
+        toggle.setSelectedIcon(new PasswordEyeIcon(true));
+        toggle.setContentAreaFilled(false);
+        toggle.setBorder(BorderFactory.createEmptyBorder());
+        toggle.setPreferredSize(new Dimension(44, 44));
+        toggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        toggle.getAccessibleContext().setAccessibleName("Show password");
+        toggle.setToolTipText("Show password");
+        toggle.addItemListener(e -> {
+            boolean visible = toggle.isSelected();
+            password.setEchoChar(visible ? '\0' : mask);
+            toggle.setToolTipText(visible ? "Hide password" : "Show password");
+        });
+        return toggle;
+    }
+
+    private record PasswordEyeIcon(boolean crossed) implements Icon {
+        @Override
+        public int getIconWidth() {
+            return 20;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 20;
+        }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            g.translate(x, y);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(Theme.NAV_ACTIVE);
+            g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            Path2D eye = new Path2D.Float();
+            eye.moveTo(1, 10);
+            eye.curveTo(6, 2, 14, 2, 19, 10);
+            eye.curveTo(14, 18, 6, 18, 1, 10);
+            eye.closePath();
+            g.draw(eye);
+            g.drawOval(7, 7, 6, 6);
+            if (crossed) {
+                g.drawLine(3, 3, 17, 17);
+            }
+            g.dispose();
+        }
     }
 
     private void doLogin() {
@@ -196,6 +263,109 @@ public class LoginGUI extends JFrame {
             JOptionPane.showMessageDialog(this, ex.getMessage());
             pass.setText("");
             txuser.requestFocus();
+        }
+    }
+
+    private void doRegister() {
+        JDialog dialog = new JDialog(this, "Create your QuizFin account", true);
+        dialog.setUndecorated(true);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+
+        JTextField username = new JTextField(txuser.getText().trim(), 20);
+        JPasswordField password = new JPasswordField(20);
+        JPasswordField confirmation = new JPasswordField(20);
+
+        JPanel surface = new JPanel(new BorderLayout());
+        surface.setBackground(Theme.BG);
+        surface.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.CHIP_BORDER),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)));
+        JPanel form = new RoundPanel(Theme.CARD, 36, new GridBagLayout());
+        form.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
+        surface.add(form);
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        form.add(Theme.label("QUIZFIN", Font.BOLD, 12, Theme.PRIMARY), c);
+        c.insets = new Insets(5, 0, 0, 0);
+        form.add(Theme.label("Create your account", Theme.display(28), Theme.TEXT), c);
+        form.add(Theme.label("One account for both QuizFin games", Font.PLAIN, 13, Theme.MUTED), c);
+        addRegistrationField(form, c, "Username", "3–20 letters, digits or underscores", username);
+        addRegistrationField(form, c, "Password", "At least 6 characters", password);
+        addRegistrationField(form, c, "Confirm password", null, confirmation);
+
+        JTextArea error = new JTextArea(2, 0);
+        error.setOpaque(false);
+        error.setEditable(false);
+        error.setFocusable(false);
+        error.setLineWrap(true);
+        error.setWrapStyleWord(true);
+        error.setFont(Theme.nunitoSemiBold(13));
+        error.setForeground(Theme.RED);
+        error.getAccessibleContext().setAccessibleName("Account creation feedback");
+        c.insets = new Insets(6, 0, 4, 0);
+        form.add(error, c);
+
+        RoundButton submit = new RoundButton("Create account");
+        RoundButton cancel = new RoundButton("Cancel");
+        cancel.setColors(Theme.CHIP, Theme.CHIP_BORDER, Theme.PRIMARY);
+        JPanel actions = new JPanel(new BorderLayout(10, 0));
+        actions.setOpaque(false);
+        actions.add(submit, BorderLayout.CENTER);
+        actions.add(cancel, BorderLayout.EAST);
+        c.insets = new Insets(0, 0, 0, 0);
+        form.add(actions, c);
+
+        submit.addActionListener(e -> {
+            char[] secret = password.getPassword();
+            char[] repeated = confirmation.getPassword();
+            try {
+                if (!Arrays.equals(secret, repeated)) {
+                    throw new AuthException("The passwords do not match.");
+                }
+                services.auth.register(username.getText(), secret);
+                txuser.setText(username.getText().trim());
+                pass.setText("");
+                loginSubtitle.setText("Account created. Enter your password to log in.");
+                dialog.dispose();
+                SwingUtilities.invokeLater(pass::requestFocusInWindow);
+            } catch (AuthException ex) {
+                error.setText(ex.getMessage());
+                username.requestFocusInWindow();
+            } finally {
+                Arrays.fill(secret, '\0');
+                Arrays.fill(repeated, '\0');
+                password.setText("");
+                confirmation.setText("");
+            }
+        });
+        cancel.addActionListener(e -> dialog.dispose());
+        dialog.getRootPane().setDefaultButton(submit);
+        dialog.getRootPane().registerKeyboardAction(e -> dialog.dispose(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
+        dialog.setContentPane(surface);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        SwingUtilities.invokeLater(username::requestFocusInWindow);
+        dialog.setVisible(true);
+        password.setText("");
+        confirmation.setText("");
+    }
+
+    private static void addRegistrationField(JPanel form, GridBagConstraints c, String caption,
+                                             String hint, JTextField field) {
+        JLabel label = Theme.label(caption, Font.BOLD, 14, Theme.TEXT);
+        label.setLabelFor(field);
+        c.insets = new Insets(12, 0, 4, 0);
+        form.add(label, c);
+        c.insets = new Insets(0, 0, 0, 0);
+        form.add(buildInput(field), c);
+        if (hint != null) {
+            field.getAccessibleContext().setAccessibleDescription(hint);
+            c.insets = new Insets(3, 0, 0, 0);
+            form.add(Theme.label(hint, Font.PLAIN, 12, Theme.MUTED), c);
         }
     }
 
