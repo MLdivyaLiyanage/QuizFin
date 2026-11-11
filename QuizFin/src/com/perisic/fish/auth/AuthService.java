@@ -17,9 +17,9 @@ import com.perisic.fish.auth.AccountInfo;
  * me" cookie) and logout.
  *
  * <p>Accounts are rows in the PostgreSQL {@code users} table (username,
- * display name, PBKDF2 hash, timestamps) instead of {@code users.properties}.
+ * display name, bcrypt hash, timestamps) instead of {@code users.properties}.
  * Passwords are never stored in plain text: they are salted and hashed with
- * {@link PasswordHasher} (PBKDF2-HMAC-SHA256, 120 000 iterations).</p>
+ * {@link PasswordHasher} (bcrypt, cost 12).</p>
  *
  * <p>Connection settings come from {@code db.properties} in the working
  * directory, then {@code ~/.quizfin/db.properties}; the environment variables
@@ -92,6 +92,9 @@ public class AuthService {
         if (password == null || password.length < 6) {
             throw new AuthException("Password must be at least 6 characters.");
         }
+        if (!PasswordHasher.fitsBcrypt(password)) {
+            throw new AuthException("Password must be at most 72 UTF-8 bytes.");
+        }
         String key = name.toLowerCase();
         try {
             if (users.exists(key)) {
@@ -130,6 +133,13 @@ public class AuthService {
         }
         fails.remove(key);
         lockedUntil.remove(key);
+        if (PasswordHasher.needsRehash(account.passwordHash) && PasswordHasher.fitsBcrypt(password)) {
+            try {
+                users.updatePasswordHash(key, account.passwordHash, PasswordHasher.hash(password));
+            } catch (SQLException e) {
+                System.err.println("Could not upgrade password hash: " + e.getMessage());
+            }
+        }
         try {
             users.setLastLogin(key);
         } catch (SQLException e) {

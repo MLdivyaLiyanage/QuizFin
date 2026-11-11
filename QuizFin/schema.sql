@@ -21,7 +21,8 @@ CREATE INDEX IF NOT EXISTS idx_scores_rank ON scores (score DESC, played_at ASC)
 
 -- ----------------------------------------------------------------- users
 -- One row per player account. The password column holds only a salted
--- PBKDF2-HMAC-SHA256 hash ("iterations$salt$hash"), never the password.
+-- bcrypt hash (cost 12), never the password. Legacy PBKDF2 hashes are
+-- upgraded by the application after a successful password login.
 CREATE TABLE IF NOT EXISTS users (
     username      VARCHAR(20) PRIMARY KEY,      -- lower-case login name
     display_name  VARCHAR(64) NOT NULL DEFAULT '',

@@ -130,6 +130,18 @@ final class UserRepository {
         }
     }
 
+    /** Upgrades a hash only if it has not changed since login read it. */
+    void updatePasswordHash(String username, String previousHash, String passwordHash) throws SQLException {
+        String sql = "UPDATE users SET password_hash = ? WHERE username = ? AND password_hash = ?";
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, passwordHash);
+            ps.setString(2, username);
+            ps.setString(3, previousHash);
+            ps.executeUpdate();
+        }
+    }
+
     boolean exists(String username) throws SQLException {
         String sql = "SELECT 1 FROM users WHERE username = ?";
         try (Connection conn = open();
