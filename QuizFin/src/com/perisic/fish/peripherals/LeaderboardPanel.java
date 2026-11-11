@@ -3,14 +3,11 @@ package com.perisic.fish.peripherals;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.GridLayout;
-import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Dimension;
 import java.util.List;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -23,16 +20,12 @@ import javax.swing.border.EmptyBorder;
 
 import com.perisic.fish.engine.ScoreEntry;
 
-/**
- * "Hall of Champions": top 10 total scores with game mode and score breakdown.
- */
+/** "Hall of Champions": top 10 total scores with game mode and score breakdown. */
 class LeaderboardPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private final GameGUI frame;
     private final JPanel rows = new JPanel(new GridLayout(1, 1, 0, 4));
     private final Timer refreshTimer = new Timer(1000, e -> refreshScores());
-    private static final DateTimeFormatter PLAYED_AT = DateTimeFormatter
-            .ofPattern("dd MMM yyyy, hh:mm:ss a").withZone(ZoneId.systemDefault());
 
     LeaderboardPanel(GameGUI frame) {
         super(new BorderLayout(0, 18));
@@ -91,11 +84,14 @@ class LeaderboardPanel extends JPanel {
         }
         int rank = 1;
         for (ScoreEntry entry : top) {
-            JPanel scoreRow = row(false, entry.player.equals(frame.getPlayer()), String.format("%02d", rank++),
-                    entry.player, entry.mode.label, entry.quizScore == null ? "—" : String.valueOf(entry.quizScore),
-                    String.valueOf(entry.fishScore), entry.score + " pts", ago(entry.time));
-            ((JLabel) scoreRow.getComponent(6)).setToolTipText(PLAYED_AT.format(Instant.ofEpochMilli(entry.time)));
-            rows.add(scoreRow);
+            rows.add(row(false, entry.player.equals(frame.getPlayer()),
+                    String.format("%02d", rank++),
+                    entry.player,
+                    entry.mode.label,
+                    entry.quizScore == null ? "—" : String.valueOf(entry.quizScore),
+                    String.valueOf(entry.fishScore),
+                    entry.score + " pts",
+                    entry.getTimeDisplay()));
         }
         rows.revalidate();
         rows.repaint();
@@ -106,7 +102,8 @@ class LeaderboardPanel extends JPanel {
         r.setOpaque(me);
         r.setBackground(new Color(0xE9, 0xF3, 0xFC));
         r.setBorder(new EmptyBorder(header ? 4 : 11, 12, header ? 4 : 11, 12));
-        int[] widths = { 44, 115, 140, 55, 55, 80, 120 };
+        // The PLAYED column holds a full date + time, e.g. "09 Nov 2026, 10:28:48 pm".
+        int[] widths = { 40, 110, 130, 50, 50, 80, 190 };
         for (int i = 0; i < values.length; i++) {
             String s = values[i];
             JLabel l = header ? Theme.label(s, Font.BOLD, 12, Theme.MUTED)
@@ -121,17 +118,5 @@ class LeaderboardPanel extends JPanel {
             r.add(l, c);
         }
         return r;
-    }
-
-    private static String ago(long time) {
-        long seconds = Math.max(0, (System.currentTimeMillis() - time) / 1000);
-        if (seconds < 5) return "just now";
-        if (seconds < 60) return seconds + " seconds ago";
-        long minutes = seconds / 60;
-        if (minutes < 60) return minutes + (minutes == 1 ? " minute ago" : " minutes ago");
-        long hours = minutes / 60;
-        if (hours < 24) return hours + (hours == 1 ? " hour ago" : " hours ago");
-        long days = hours / 24;
-        return days + (days == 1 ? " day ago" : " days ago");
     }
 }

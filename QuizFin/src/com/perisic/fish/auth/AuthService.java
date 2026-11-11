@@ -2,58 +2,84 @@ package com.perisic.fish.auth;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import com.perisic.fish.auth.AccountInfo;
+
 /**
  * Authentication facade used by the GUI: register, login, resume ("remember
- * me" cookie) and logout. Passwords are hashed (PasswordHasher); sessions are
- * handled by SessionManager. Data lives in ~/.quizfin (override with
- * -Dquizfin.dir=...).
+ * me" cookie) and logout.
+ *
+ * <p>Accounts are rows in the PostgreSQL {@code users} table (username,
+ * display name, PBKDF2 hash, timestamps) instead of {@code users.properties}.
+ * Passwords are never stored in plain text: they are salted and hashed with
+ * {@link PasswordHasher} (PBKDF2-HMAC-SHA256, 120 000 iterations).</p>
+ *
+ * <p>Connection settings come from {@code db.properties} in the working
+ * directory, then {@code ~/.quizfin/db.properties}; the environment variables
+ * {@code QUIZFIN_DB_URL}, {@code QUIZFIN_DB_USER} and
+ * {@code QUIZFIN_DB_PASSWORD} win over both.</p>
+ *
+ * <pre>
+ * db.url=jdbc:postgresql://localhost:5432/quizfin
+ * db.user=postgres
+ * db.password=your-password
+ * </pre>
+ *
+ * <p>Sessions (the "remember me" cookie) stay in the user's data folder and are
+ * handled by {@link SessionManager}, so nothing else in the app changes.</p>
  */
 public class AuthService {
     private static final int MAX_FAILS = 5;
     private static final long LOCK_MS = 30_000;
 
-    private final Path users;
+    /** Account from the assignment brief, created on first run when missing. */
+    private static final String DEFAULT_USER = "marc";
+    private static final String DEFAULT_PASSWORD = "hello26";
+
+    private final UserRepository users;
     private final SessionManager sessions;
-    private final Map<String, int[]> fails = new HashMap<>(); // user -> {count}
+    private final Map<String, int[]> fails = new HashMap<>();      // user -> {count}
     private final Map<String, Long> lockedUntil = new HashMap<>();
 
     public AuthService() {
         this(Paths.get(System.getProperty("quizfin.dir",
-                Paths.get(System.getProperty("user.home"), ".quizfin").toString())));
+                Paths.get(System.getProperty("user.home"), ".quizfin").toString())),
+                loadDbSettings());
     }
 
-    public AuthService(Path dir) {
+    /** Package-private: lets a smoke test inject a data folder and db settings. */
+    AuthService(Path dir, Properties db) {
         try {
             Files.createDirectories(dir);
         } catch (IOException e) {
             System.err.println("Could not create " + dir + ": " + e);
         }
-        this.users = dir.resolve("users.properties");
+        this.users = UserRepository.from(db);
         this.sessions = new SessionManager(dir);
-        seedDefaultUser();
+        ensureSchema();
     }
 
-    /** Keeps the account from the assignment (Marc / hello26) available. */
-    private void seedDefaultUser() {
+    /**
+     * Creates the {@code users} table and the default account. A stopped
+     * database server must not stop the app from opening, so failures are only
+     * reported and retried on the next login.
+     */
+    private void ensureSchema() {
         try {
-            Properties p = load();
-            if (p.isEmpty()) {
-                p.setProperty("marc", "Marc|" + PasswordHasher.hash("hello26".toCharArray()));
-                save(p);
+            users.ensureTable();
+            if (!users.exists(DEFAULT_USER)) {
+                users.insert(DEFAULT_USER, "Marc", PasswordHasher.hash(DEFAULT_PASSWORD.toCharArray()));
             }
-        } catch (IOException e) {
-            System.err.println("Could not initialize users: " + e);
+        } catch (SQLException e) {
+            System.err.println("Users table not ready (" + e.getMessage()
+                    + "). Start PostgreSQL and check db.properties.");
         }
     }
 
@@ -66,17 +92,15 @@ public class AuthService {
         if (password == null || password.length < 6) {
             throw new AuthException("Password must be at least 6 characters.");
         }
+        String key = name.toLowerCase();
         try {
-            Properties p = load();
-            String key = name.toLowerCase();
-            if (p.containsKey(key)) {
+            if (users.exists(key)) {
                 throw new AuthException("That username is already taken.");
             }
-            p.setProperty(key, name + "|" + PasswordHasher.hash(password));
-            save(p);
-        } catch (IOException e) {
-            System.err.println("Could not create account: " + e);
-            throw new AuthException("Could not save your account. Check that QuizFin can access its data folder.");
+            users.insert(key, name, PasswordHasher.hash(password));
+        } catch (SQLException e) {
+            System.err.println("Could not create account: " + e.getMessage());
+            throw new AuthException("Could not save your account. Is PostgreSQL running?");
         }
     }
 
@@ -88,20 +112,14 @@ public class AuthService {
         if (until != null && until > now) {
             throw new AuthException("Too many attempts. Try again in " + ((until - now) / 1000 + 1) + " s.");
         }
-        String entry;
+        UserRepository.Account account;
         try {
-            entry = load().getProperty(key);
-        } catch (IOException e) {
-            System.err.println("Could not read users: " + e);
-            throw new AuthException("Could not read your account. Check that QuizFin can access its data folder.");
+            account = users.find(key);
+        } catch (SQLException e) {
+            System.err.println("Could not read users: " + e.getMessage());
+            throw new AuthException("Could not reach the account database. Is PostgreSQL running?");
         }
-        boolean ok = false;
-        String display = key;
-        if (entry != null) {
-            int bar = entry.indexOf('|');
-            display = entry.substring(0, bar);
-            ok = PasswordHasher.verify(password, entry.substring(bar + 1));
-        }
+        boolean ok = account != null && PasswordHasher.verify(password, account.passwordHash);
         if (!ok) {
             int[] c = fails.computeIfAbsent(key, k -> new int[1]);
             if (++c[0] >= MAX_FAILS) {
@@ -112,7 +130,12 @@ public class AuthService {
         }
         fails.remove(key);
         lockedUntil.remove(key);
-        return sessions.issue(display, remember);
+        try {
+            users.setLastLogin(key);
+        } catch (SQLException e) {
+            System.err.println("Could not record last login: " + e.getMessage());
+        }
+        return sessions.issue(account.displayName, remember);
     }
 
     /** Auto-login from the "remember me" cookie, or null. */
@@ -126,31 +149,45 @@ public class AuthService {
         }
     }
 
-    private Properties load() throws IOException {
-        Properties p = new Properties();
-        try (InputStream in = Files.newInputStream(users)) {
-            p.load(in);
-        } catch (NoSuchFileException e) {
-            // A fresh installation has no account file yet.
-        } catch (IllegalArgumentException e) {
-            throw new IOException("Invalid account file", e);
+    /**
+     * Returns account identity and time metadata for a user. Returns
+     * {@code null} when the account is unknown. Never exposes the password hash.
+     */
+    public AccountInfo accountInfo(String username) {
+        try {
+            return users.accountInfo(username == null ? "" : username.trim().toLowerCase());
+        } catch (SQLException e) {
+            System.err.println("Could not read account info: " + e.getMessage());
+            return null;
         }
+    }
+
+    /** db.properties (working dir, then ~/.quizfin), overridable by env vars. */
+    private static Properties loadDbSettings() {
+        Properties p = new Properties();
+        Path custom = Paths.get(System.getProperty("quizfin.db.properties", "db.properties"));
+        Path userHome = Paths.get(System.getProperty("user.home"), ".quizfin", "db.properties");
+        for (Path candidate : new Path[] { custom, userHome }) {
+            if (!Files.isRegularFile(candidate)) {
+                continue;
+            }
+            try (InputStream in = Files.newInputStream(candidate)) {
+                p.load(in);
+            } catch (IOException e) {
+                System.err.println("Could not read " + candidate + ": " + e);
+            }
+            break;
+        }
+        override(p, "db.url", "QUIZFIN_DB_URL");
+        override(p, "db.user", "QUIZFIN_DB_USER");
+        override(p, "db.password", "QUIZFIN_DB_PASSWORD");
         return p;
     }
 
-    private void save(Properties p) throws IOException {
-        Path temp = Files.createTempFile(users.getParent(), "users-", ".tmp");
-        try {
-            try (OutputStream out = Files.newOutputStream(temp)) {
-                p.store(out, "QuizFin users (salted PBKDF2 hashes)");
-            }
-            try {
-                Files.move(temp, users, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(temp, users, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } finally {
-            Files.deleteIfExists(temp);
+    private static void override(Properties p, String key, String envKey) {
+        String env = System.getenv(envKey);
+        if (env != null && !env.isBlank()) {
+            p.setProperty(key, env.trim());
         }
     }
 }

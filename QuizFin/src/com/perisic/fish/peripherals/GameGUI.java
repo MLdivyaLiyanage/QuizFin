@@ -22,6 +22,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
+import com.perisic.fish.auth.AccountInfo;
 import com.perisic.fish.auth.Session;
 import com.perisic.fish.engine.GameEngine;
 import com.perisic.fish.engine.QuizEngine;
@@ -225,12 +226,25 @@ public class GameGUI extends JFrame {
             names.setOpaque(false);
             names.setLayout(new BoxLayout(names, BoxLayout.Y_AXIS));
             names.add(Theme.label(player, Font.BOLD, 14, Color.WHITE));
-            names.add(Theme.label("Player account", Theme.nunito(Font.PLAIN, 13), new Color(0x9F, 0xB4, 0xCC)));
+            names.add(Theme.label(accountLine(), Theme.nunito(Font.PLAIN, 11), new Color(0x9F, 0xB4, 0xCC)));
             chip.add(names, BorderLayout.CENTER);
             chip.setAlignmentX(0f);
             chip.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
         }
         return chip;
+    }
+
+    /**
+     * "Created 09 Nov 2026, 07:50:12 pm • Last login 09 Nov 2026, 09:21:44 pm"
+     * from the {@code created_at} and {@code last_login} columns of the users
+     * table, both shown as a real date and time.
+     */
+    private String accountLine() {
+        AccountInfo info = services.auth.accountInfo(player);
+        if (info == null) {
+            return "Player account";
+        }
+        return "Created " + info.createdAtDisplay() + " • Last login " + info.lastLoginDisplay();
     }
 
     // -------------------------------------------------------- navigation

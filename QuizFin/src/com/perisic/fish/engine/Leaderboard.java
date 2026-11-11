@@ -1,29 +1,37 @@
 package com.perisic.fish.engine;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Properties;
 
 /**
- * Leaderboard stored in the user's home directory. Reads original fish-score
- * records and versioned records containing game mode and both scores.
+ * Leaderboard stored in PostgreSQL using a TIMESTAMP played_at column.
  */
 public class Leaderboard implements ScoreStore {
 
-    private final Path file;
+    private final String url;
+    private final String user;
+    private final String password;
 
     public Leaderboard() {
-        this(Paths.get(System.getProperty("user.home"), "quizfin_leaderboard.csv"));
-    }
-
-    public Leaderboard(Path file) {
-        this.file = file;
+        Properties db = loadDbProperties();
+        this.url = db.getProperty("db.url", "jdbc:postgresql://localhost:5432/quizfin");
+        this.user = db.getProperty("db.user", "postgres");
+        this.password = db.getProperty("db.password", "");
+        ensureTable();
     }
 
     @Override
@@ -33,69 +41,130 @@ public class Leaderboard implements ScoreStore {
 
     @Override
     public synchronized void add(ScoreEntry entry) {
-        String name = (entry.player == null ? "Guest" : entry.player).replace('\n', ' ').replace('\r', ' ');
-        String line = "v2," + entry.fishScore + "," + entry.time + "," + entry.mode.name() + ","
-                + (entry.quizScore == null ? "" : entry.quizScore) + "," + name + System.lineSeparator();
-        try {
-            Files.write(file, line.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            System.err.println("Could not save score: " + e);
-        }
-    }
+        String sql = "INSERT INTO scores (player, score, quiz_score, fish_score, mode, played_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
 
-    private List<ScoreEntry> readAll() {
-        List<ScoreEntry> all = new ArrayList<>();
-        if (!Files.exists(file)) {
-            return all;
-        }
-        try {
-            for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
-                try {
-                    if (line.startsWith("v2,")) {
-                        String[] p = line.split(",", 6);
-                        if (p.length < 6) continue;
-                        ScoreEntry.Mode mode = ScoreEntry.Mode.valueOf(p[3]);
-                        int fish = Integer.parseInt(p[1]);
-                        long time = Long.parseLong(p[2]);
-                        if (mode == ScoreEntry.Mode.UNKNOWN) {
-                            all.add(new ScoreEntry(p[5], fish, time));
-                        } else {
-                            Integer quiz = mode == ScoreEntry.Mode.QUIZ_AND_FISH ? Integer.valueOf(p[4]) : null;
-                            all.add(new ScoreEntry(p[5], quiz, fish, time));
-                        }
-                    } else {
-                        String[] p = line.split(",", 3);
-                        if (p.length < 3) continue;
-                        all.add(new ScoreEntry(p[2], Integer.parseInt(p[0]), Long.parseLong(p[1])));
-                    }
-                } catch (IllegalArgumentException ignored) {
-                    // skip corrupt line
-                }
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, entry.player == null ? "Guest" : entry.player);
+            ps.setInt(2, entry.score);
+            if (entry.quizScore == null) {
+                ps.setNull(3, java.sql.Types.INTEGER);
+            } else {
+                ps.setInt(3, entry.quizScore);
             }
-        } catch (IOException e) {
-            System.err.println("Could not read leaderboard: " + e);
+            ps.setInt(4, entry.fishScore);
+            ps.setString(5, entry.mode.name());
+            ps.setTimestamp(6, Timestamp.from(Instant.ofEpochMilli(entry.time)));
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Could not save score: " + e.getMessage());
         }
-        return all;
     }
 
-    /** Top n scores, highest first (older entry wins a tie). */
     @Override
     public synchronized List<ScoreEntry> top(int n) {
-        List<ScoreEntry> all = readAll();
-        all.sort(Comparator.comparingInt((ScoreEntry e) -> e.score).reversed().thenComparingLong(e -> e.time));
-        return all.subList(0, Math.min(n, all.size()));
+        List<ScoreEntry> out = new ArrayList<>();
+        String sql = "SELECT player, quiz_score, fish_score, mode, played_at "
+                + "FROM scores ORDER BY score DESC, played_at ASC LIMIT ?";
+
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, Math.max(0, n));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Integer quizScore = rs.getObject("quiz_score") == null
+                            ? null
+                            : rs.getInt("quiz_score");
+                    Timestamp playedAt = rs.getTimestamp("played_at");
+                    long time = playedAt == null ? System.currentTimeMillis() : playedAt.getTime();
+                    out.add(new ScoreEntry(
+                            rs.getString("player"),
+                            quizScore,
+                            rs.getInt("fish_score"),
+                            time,
+                            ScoreEntry.Mode.valueOf(rs.getString("mode"))));
+                }
+            }
+
+            out.sort(Comparator.comparingInt((ScoreEntry e) -> e.score).reversed()
+                    .thenComparingLong(e -> e.time));
+        } catch (SQLException e) {
+            System.err.println("Could not read leaderboard: " + e.getMessage());
+        }
+
+        return out;
     }
 
-    /** Best score of a player, or 0. */
     @Override
     public synchronized int best(String player) {
-        int best = 0;
-        for (ScoreEntry e : readAll()) {
-            if (e.player.equals(player)) {
-                best = Math.max(best, e.score);
+        String sql = "SELECT COALESCE(MAX(score), 0) AS best FROM scores WHERE player = ?";
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, player == null ? "Guest" : player);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("best");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Could not read best score: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    private void ensureTable() {
+        String sql = "CREATE TABLE IF NOT EXISTS scores ("
+                + "id SERIAL PRIMARY KEY, "
+                + "player VARCHAR(64) NOT NULL, "
+                + "score INTEGER NOT NULL, "
+                + "quiz_score INTEGER NULL, "
+                + "fish_score INTEGER NOT NULL, "
+                + "mode VARCHAR(20) NOT NULL, "
+                + "played_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)";
+
+        try (Connection conn = open();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Could not ensure scores table: " + e.getMessage());
+        }
+    }
+
+    private Connection open() throws SQLException {
+        return DriverManager.getConnection(url, user, password);
+    }
+
+    private Properties loadDbProperties() {
+        Properties p = new Properties();
+        Path custom = Paths.get(System.getProperty("quizfin.db.properties", "db.properties"));
+        Path home = Paths.get(System.getProperty("user.home"), ".quizfin", "db.properties");
+
+        for (Path path : new Path[] { custom, home }) {
+            if (Files.isRegularFile(path)) {
+                try (InputStream in = Files.newInputStream(path)) {
+                    p.load(in);
+                } catch (IOException e) {
+                    System.err.println("Could not read " + path + ": " + e.getMessage());
+                }
+                break;
             }
         }
-        return best;
+
+        String envUrl = System.getenv("QUIZFIN_DB_URL");
+        if (envUrl != null && !envUrl.isBlank()) {
+            p.setProperty("db.url", envUrl.trim());
+        }
+        String envUser = System.getenv("QUIZFIN_DB_USER");
+        if (envUser != null && !envUser.isBlank()) {
+            p.setProperty("db.user", envUser.trim());
+        }
+        String envPassword = System.getenv("QUIZFIN_DB_PASSWORD");
+        if (envPassword != null && !envPassword.isBlank()) {
+            p.setProperty("db.password", envPassword.trim());
+        }
+
+        return p;
     }
 }

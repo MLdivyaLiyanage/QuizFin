@@ -9,9 +9,8 @@ import com.perisic.fish.engine.QuizServer;
 import com.perisic.fish.engine.ScoreStore;
 
 /**
- * Composition root: the ONLY place that chooses the concrete implementations
- * (Open Trivia DB, Fish API, file leaderboard, file-based auth). Screens get
- * these through interfaces, so they stay decoupled and testable.
+ * Composition root: the ONLY place that chooses the concrete implementations.
+ * Screens get these through interfaces, so they stay decoupled and testable.
  */
 public class AppServices {
     public final QuestionSource questions;
