@@ -1,5 +1,8 @@
 package com.perisic.fish.auth;
 
+// AI-assisted documentation correction (OpenAI Codex, 2026-11-11): local session
+// storage is not a browser cookie or remote trust boundary. See SOURCES.md.
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,11 +18,13 @@ import java.util.Properties;
 /**
  * Cookie-style sessions for the desktop app.
  * <ul>
- * <li>"Server side": sessions.properties keeps SHA-256(token) -> user|expiry,
- * so a stolen file does not reveal valid tokens.</li>
+ * <li>Session table: sessions.properties keeps SHA-256(token) -> user|expiry,
+ * so a read of that table alone does not reveal raw tokens.</li>
  * <li>"Client side": session.cookie holds the raw token (like a browser
  * cookie) so "Remember me" can log the player in again until it expires.</li>
  * </ul>
+ * Both files are local; this is not a browser cookie or a remote trust boundary.
+ * Anyone who can modify both files can impersonate a local account.
  */
 class SessionManager {
     static final long TTL_MS = 7L * 24 * 60 * 60 * 1000; // 7 days, like a persistent cookie

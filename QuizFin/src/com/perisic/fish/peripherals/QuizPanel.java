@@ -1,5 +1,7 @@
 package com.perisic.fish.peripherals;
 
+// AI-assisted button/layout corrections (OpenAI Codex, 2026-11-11). See SOURCES.md.
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -78,20 +80,23 @@ class QuizPanel extends JPanel {
         questionText.setForeground(Theme.TEXT);
         questionText.setAlignmentX(0f);
         head.add(questionText);
-        card.add(head, BorderLayout.NORTH);
+        JPanel questionBody = new JPanel(new BorderLayout(0, 20));
+        questionBody.setOpaque(false);
+        questionBody.add(head, BorderLayout.NORTH);
 
         optionsGrid.setOpaque(false);
         JPanel optionsHolder = new JPanel(new BorderLayout());
         optionsHolder.setOpaque(false);
         optionsHolder.add(optionsGrid, BorderLayout.NORTH);
-        card.add(optionsHolder, BorderLayout.CENTER);
+        questionBody.add(optionsHolder, BorderLayout.CENTER);
 
-        JPanel foot = new JPanel(new BorderLayout());
+        JPanel foot = new JPanel(new BorderLayout(16, 0));
         foot.setOpaque(false);
-        foot.add(feedback, BorderLayout.WEST);
+        foot.add(feedback, BorderLayout.CENTER);
         next.addActionListener(e -> onNext());
         foot.add(next, BorderLayout.EAST);
-        card.add(foot, BorderLayout.SOUTH);
+        questionBody.add(foot, BorderLayout.SOUTH);
+        card.add(questionBody, BorderLayout.NORTH);
         add(card, BorderLayout.CENTER);
 
         bindKeys();
@@ -153,7 +158,8 @@ class QuizPanel extends JPanel {
             b.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
             b.setFont(Theme.medium(16));
             b.setColors(Theme.CHIP, Theme.CHIP_BORDER, Theme.TEXT);
-            b.setPreferredSize(new Dimension(300, 84));
+            b.setPreferredSize(new Dimension(300, Math.max(84, b.getPreferredSize().height)));
+            b.getAccessibleContext().setAccessibleName(letter + ": " + opt);
             b.addActionListener(e -> onAnswer(opt, b));
             optionButtons.add(b);
             optionsGrid.add(b);
@@ -173,6 +179,7 @@ class QuizPanel extends JPanel {
 
         // colour the chosen button, and always reveal the right one
         for (int i = 0; i < optionButtons.size(); i++) {
+            optionButtons.get(i).setInteractionFeedback(false);
             if (q.options.get(i).equals(q.correct)) {
                 optionButtons.get(i).setColors(Theme.GREEN_BG, Theme.GREEN, Theme.TEXT);
             }
@@ -189,7 +196,7 @@ class QuizPanel extends JPanel {
             feedback.setText("Correct! +" + engine.pointsPerQuestion() + " pts");
             feedback.setForeground(Theme.GREEN);
         } else {
-            feedback.setText("Not quite – the answer was: " + q.correct);
+            feedback.setText("Not quite. The correct answer is highlighted.");
             feedback.setForeground(Theme.RED);
         }
         next.setEnabled(true);

@@ -1,5 +1,9 @@
 package com.perisic.fish.auth;
 
+// AI-assisted corrections (OpenAI Codex, 2026-11-11): canonical identity,
+// remembered-account validation, locale handling, schema retry, and removal of
+// automatic hardcoded credentials. See SOURCES.md for the assistance record.
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -8,6 +12,7 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Properties;
 
 import com.perisic.fish.auth.AccountInfo;
@@ -39,12 +44,9 @@ public class AuthService {
     private static final int MAX_FAILS = 5;
     private static final long LOCK_MS = 30_000;
 
-    /** Account from the assignment brief, created on first run when missing. */
-    private static final String DEFAULT_USER = "marc";
-    private static final String DEFAULT_PASSWORD = "hello26";
-
     private final UserRepository users;
     private final SessionManager sessions;
+    private boolean schemaReady;
     private final Map<String, int[]> fails = new HashMap<>();      // user -> {count}
     private final Map<String, Long> lockedUntil = new HashMap<>();
 
@@ -67,19 +69,23 @@ public class AuthService {
     }
 
     /**
-     * Creates the {@code users} table and the default account. A stopped
+     * Creates the {@code users} table. A stopped
      * database server must not stop the app from opening, so failures are only
      * reported and retried on the next login.
      */
     private void ensureSchema() {
         try {
-            users.ensureTable();
-            if (!users.exists(DEFAULT_USER)) {
-                users.insert(DEFAULT_USER, "Marc", PasswordHasher.hash(DEFAULT_PASSWORD.toCharArray()));
-            }
+            ensureSchemaReady();
         } catch (SQLException e) {
             System.err.println("Users table not ready (" + e.getMessage()
                     + "). Start PostgreSQL and check db.properties.");
+        }
+    }
+
+    private void ensureSchemaReady() throws SQLException {
+        if (!schemaReady) {
+            users.ensureTable();
+            schemaReady = true;
         }
     }
 
@@ -95,8 +101,9 @@ public class AuthService {
         if (!PasswordHasher.fitsBcrypt(password)) {
             throw new AuthException("Password must be at most 72 UTF-8 bytes.");
         }
-        String key = name.toLowerCase();
+        String key = name.toLowerCase(Locale.ROOT);
         try {
+            ensureSchemaReady();
             if (users.exists(key)) {
                 throw new AuthException("That username is already taken.");
             }
@@ -109,7 +116,7 @@ public class AuthService {
 
     /** Checks credentials and starts a session (cookie written if remember). */
     public synchronized Session login(String username, char[] password, boolean remember) throws AuthException {
-        String key = username == null ? "" : username.trim().toLowerCase();
+        String key = username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
         long now = System.currentTimeMillis();
         Long until = lockedUntil.get(key);
         if (until != null && until > now) {
@@ -117,6 +124,7 @@ public class AuthService {
         }
         UserRepository.Account account;
         try {
+            ensureSchemaReady();
             account = users.find(key);
         } catch (SQLException e) {
             System.err.println("Could not read users: " + e.getMessage());
@@ -145,12 +153,27 @@ public class AuthService {
         } catch (SQLException e) {
             System.err.println("Could not record last login: " + e.getMessage());
         }
-        return sessions.issue(account.displayName, remember);
+        // Virtual identity uses the database primary key, not a presentation label.
+        return sessions.issue(account.username, remember);
     }
 
     /** Auto-login from the "remember me" cookie, or null. */
-    public Session resume() {
-        return sessions.resume();
+    public synchronized Session resume() {
+        Session saved = sessions.resume();
+        if (saved == null) return null;
+        try {
+            ensureSchemaReady();
+            UserRepository.Account account = users.find(saved.username.trim().toLowerCase(Locale.ROOT));
+            if (account == null) {
+                sessions.revoke(saved.token);
+                return null;
+            }
+            // Also normalizes older sessions that stored the mixed-case display name.
+            return new Session(account.username, saved.token, saved.expires);
+        } catch (SQLException e) {
+            System.err.println("Could not validate remembered account: " + e.getMessage());
+            return null;
+        }
     }
 
     public void logout(Session s) {
@@ -165,7 +188,7 @@ public class AuthService {
      */
     public AccountInfo accountInfo(String username) {
         try {
-            return users.accountInfo(username == null ? "" : username.trim().toLowerCase());
+            return users.accountInfo(username == null ? "" : username.trim().toLowerCase(Locale.ROOT));
         } catch (SQLException e) {
             System.err.println("Could not read account info: " + e.getMessage());
             return null;

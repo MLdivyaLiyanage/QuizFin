@@ -1,5 +1,8 @@
 package com.perisic.fish.peripherals;
 
+// AI-assisted UI updates (OpenAI Codex, 2026-11-11): inline feedback, background
+// sign-in/registration, focus styling, and illustration fallback. See SOURCES.md.
+
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -40,6 +43,7 @@ import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 import com.perisic.fish.auth.AuthException;
 import com.perisic.fish.auth.Session;
@@ -60,9 +64,11 @@ public class LoginGUI extends JFrame {
     private final JTextField txuser = new JTextField(18);
     private final JPasswordField pass = new JPasswordField(18);
     private final JCheckBox remember = new JCheckBox("Remember me");
-    private final RoundButton blogin = new RoundButton("Login");
+    private final RoundButton blogin = new RoundButton("Sign in");
     private final RoundButton createAccount = new RoundButton("Create account");
     private final JLabel loginSubtitle = Theme.label("Sign in to continue your adventure", Font.PLAIN, 13, Theme.MUTED);
+    private final JTextArea loginFeedback = new JTextArea(2, 24);
+    private boolean signingIn;
 
     LoginGUI(AppServices services) {
         super("QuizFin - Login");
@@ -76,7 +82,7 @@ public class LoginGUI extends JFrame {
         }
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(false);
+        setMinimumSize(new Dimension(880, 640));
 
         JPanel root = new JPanel(new BorderLayout());
         root.setPreferredSize(new Dimension(960, 640));
@@ -138,8 +144,13 @@ public class LoginGUI extends JFrame {
                 image = ImageIO.read(input);
             } else {
                 // Also supports running javac output from the project directory.
-                try (InputStream file = Files.newInputStream(Path.of(resource.substring(1)))) {
-                    image = ImageIO.read(file);
+                image = null;
+                for (Path root : new Path[] { Path.of("QuizFin", "src"), Path.of("src"), Path.of(".") }) {
+                    Path candidate = root.resolve(resource.substring(1));
+                    if (Files.isRegularFile(candidate)) {
+                        image = ImageIO.read(candidate.toFile());
+                        break;
+                    }
                 }
             }
             if (image == null) {
@@ -147,7 +158,14 @@ public class LoginGUI extends JFrame {
             }
             return image;
         } catch (IOException ex) {
-            throw new IllegalStateException("Could not load the login illustration", ex);
+            BufferedImage fallback = new BufferedImage(420, 400, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = fallback.createGraphics();
+            g.setColor(Theme.SKY);
+            g.fillRect(0, 0, 420, 400);
+            g.translate(90, 90);
+            Theme.paintBannerArt(g);
+            g.dispose();
+            return fallback;
         }
     }
 
@@ -155,8 +173,8 @@ public class LoginGUI extends JFrame {
         JPanel right = new JPanel(new GridBagLayout());
         right.setBackground(Theme.BG);
         JPanel form = new RoundPanel(Color.WHITE, 36, new GridBagLayout());
-        form.setPreferredSize(new Dimension(400, 470));
-        form.setBorder(BorderFactory.createEmptyBorder(30, 30, 50, 30));
+        form.setPreferredSize(new Dimension(400, 530));
+        form.setBorder(BorderFactory.createEmptyBorder(28, 30, 28, 30));
         GridBagConstraints c = new GridBagConstraints();
         c.gridx = 0;
         c.fill = GridBagConstraints.HORIZONTAL;
@@ -166,17 +184,30 @@ public class LoginGUI extends JFrame {
         form.add(Theme.label("Welcome back!", Theme.display(28), Theme.TEXT), c);
         form.add(loginSubtitle, c);
         c.insets = new Insets(24, 0, 5, 0);
-        form.add(Theme.label("Username", Font.BOLD, 14, Theme.TEXT), c);
+        JLabel usernameLabel = Theme.label("Username", Font.BOLD, 14, Theme.TEXT);
+        usernameLabel.setLabelFor(txuser);
+        form.add(usernameLabel, c);
         c.insets = new Insets(3, 0, 3, 0);
         form.add(buildInput(txuser), c);
         c.insets = new Insets(16, 0, 5, 0);
-        form.add(Theme.label("Password", Font.BOLD, 14, Theme.TEXT), c);
+        JLabel passwordLabel = Theme.label("Password", Font.BOLD, 14, Theme.TEXT);
+        passwordLabel.setLabelFor(pass);
+        form.add(passwordLabel, c);
         c.insets = new Insets(3, 0, 3, 0);
         form.add(buildInput(pass), c);
         remember.setOpaque(false);
         remember.setFont(Theme.font(Font.PLAIN, 13));
         remember.setForeground(Theme.MUTED);
         form.add(remember, c);
+        loginFeedback.setEditable(false);
+        loginFeedback.setFocusable(false);
+        loginFeedback.setOpaque(false);
+        loginFeedback.setLineWrap(true);
+        loginFeedback.setWrapStyleWord(true);
+        loginFeedback.setFont(Theme.nunitoSemiBold(13));
+        loginFeedback.setForeground(Theme.RED);
+        loginFeedback.getAccessibleContext().setAccessibleName("Sign in feedback");
+        form.add(loginFeedback, c);
         c.insets = new Insets(10, 0, 0, 0);
         blogin.setFont(Theme.font(Font.BOLD, 16));
         blogin.setPreferredSize(new Dimension(340, 44));
@@ -199,6 +230,15 @@ public class LoginGUI extends JFrame {
         input.setPreferredSize(new Dimension(340, 44));
         input.setMinimumSize(new Dimension(340, 44));
         input.add(field, BorderLayout.CENTER);
+        field.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) {
+                input.setBorder(BorderFactory.createLineBorder(Theme.PRIMARY, 2, true));
+            }
+            @Override public void focusLost(java.awt.event.FocusEvent e) {
+                input.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+            }
+        });
+        input.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         if (field instanceof JPasswordField password) {
             input.add(passwordVisibilityButton(password), BorderLayout.EAST);
         }
@@ -219,6 +259,7 @@ public class LoginGUI extends JFrame {
             boolean visible = toggle.isSelected();
             password.setEchoChar(visible ? '\0' : mask);
             toggle.setToolTipText(visible ? "Hide password" : "Show password");
+            toggle.getAccessibleContext().setAccessibleName(visible ? "Hide password" : "Show password");
         });
         return toggle;
     }
@@ -256,14 +297,52 @@ public class LoginGUI extends JFrame {
     }
 
     private void doLogin() {
-        try {
-            Session s = services.auth.login(txuser.getText(), pass.getPassword(), remember.isSelected());
-            openGame(s);
-        } catch (AuthException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage());
-            pass.setText("");
-            txuser.requestFocus();
+        if (signingIn) return;
+        String username = txuser.getText().trim();
+        char[] secret = pass.getPassword();
+        if (username.isEmpty() || secret.length == 0) {
+            Arrays.fill(secret, '\0');
+            loginFeedback.setText("Enter your username and password to continue.");
+            (username.isEmpty() ? txuser : pass).requestFocusInWindow();
+            return;
         }
+        boolean keepSignedIn = remember.isSelected();
+        signingIn = true;
+        blogin.setEnabled(false);
+        createAccount.setEnabled(false);
+        txuser.setEnabled(false);
+        pass.setEnabled(false);
+        remember.setEnabled(false);
+        blogin.setText("Signing in...");
+        loginFeedback.setText("");
+        new SwingWorker<Session, Void>() {
+            @Override protected Session doInBackground() throws AuthException {
+                try {
+                    return services.auth.login(username, secret, keepSignedIn);
+                } finally {
+                    Arrays.fill(secret, '\0');
+                }
+            }
+            @Override protected void done() {
+                signingIn = false;
+                blogin.setEnabled(true);
+                createAccount.setEnabled(true);
+                txuser.setEnabled(true);
+                pass.setEnabled(true);
+                remember.setEnabled(true);
+                blogin.setText("Sign in");
+                pass.setText("");
+                if (!isDisplayable()) return;
+                try {
+                    openGame(get());
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+                    loginFeedback.setText(cause instanceof AuthException ? cause.getMessage()
+                            : "Sign in is unavailable. Please try again.");
+                    pass.requestFocusInWindow();
+                }
+            }
+        }.execute();
     }
 
     private void doRegister() {
@@ -321,29 +400,61 @@ public class LoginGUI extends JFrame {
         submit.addActionListener(e -> {
             char[] secret = password.getPassword();
             char[] repeated = confirmation.getPassword();
-            try {
-                if (!Arrays.equals(secret, repeated)) {
-                    throw new AuthException("The passwords do not match.");
-                }
-                services.auth.register(username.getText(), secret);
-                txuser.setText(username.getText().trim());
-                pass.setText("");
-                loginSubtitle.setText("Account created. Enter your password to log in.");
-                dialog.dispose();
-                SwingUtilities.invokeLater(pass::requestFocusInWindow);
-            } catch (AuthException ex) {
-                error.setText(ex.getMessage());
-                username.requestFocusInWindow();
-            } finally {
+            boolean matching = Arrays.equals(secret, repeated);
+            Arrays.fill(repeated, '\0');
+            if (!matching) {
                 Arrays.fill(secret, '\0');
-                Arrays.fill(repeated, '\0');
-                password.setText("");
                 confirmation.setText("");
+                error.setText("The passwords do not match. Please try again.");
+                confirmation.requestFocusInWindow();
+                return;
             }
+            String name = username.getText().trim();
+            submit.setEnabled(false);
+            cancel.setEnabled(false);
+            username.setEnabled(false);
+            password.setEnabled(false);
+            confirmation.setEnabled(false);
+            submit.setText("Creating account...");
+            error.setText("");
+            new SwingWorker<Void, Void>() {
+                @Override protected Void doInBackground() throws AuthException {
+                    try {
+                        services.auth.register(name, secret);
+                        return null;
+                    } finally {
+                        Arrays.fill(secret, '\0');
+                    }
+                }
+                @Override protected void done() {
+                    submit.setEnabled(true);
+                    cancel.setEnabled(true);
+                    username.setEnabled(true);
+                    password.setEnabled(true);
+                    confirmation.setEnabled(true);
+                    submit.setText("Create account");
+                    password.setText("");
+                    confirmation.setText("");
+                    try {
+                        get();
+                        txuser.setText(name);
+                        pass.setText("");
+                        loginSubtitle.setText("Account created. Sign in below.");
+                        loginFeedback.setText("");
+                        dialog.dispose();
+                        SwingUtilities.invokeLater(pass::requestFocusInWindow);
+                    } catch (Exception ex) {
+                        Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+                        error.setText(cause instanceof AuthException ? cause.getMessage()
+                                : "Could not create your account. Please try again.");
+                        username.requestFocusInWindow();
+                    }
+                }
+            }.execute();
         });
         cancel.addActionListener(e -> dialog.dispose());
         dialog.getRootPane().setDefaultButton(submit);
-        dialog.getRootPane().registerKeyboardAction(e -> dialog.dispose(),
+        dialog.getRootPane().registerKeyboardAction(e -> { if (submit.isEnabled()) dialog.dispose(); },
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         dialog.setContentPane(surface);
         dialog.pack();

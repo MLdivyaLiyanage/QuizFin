@@ -1,5 +1,8 @@
 package com.perisic.fish.peripherals;
 
+// AI-assisted UI wording and layout updates (OpenAI Codex, 2026-11-11).
+// See SOURCES.md for the assistance record.
+
 import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.Color;
@@ -34,9 +37,9 @@ class DashboardPanel extends JPanel {
         banner.setPreferredSize(new Dimension(0, 150));
         banner.setBorder(new EmptyBorder(22, 26, 18, 26));
         JPanel text = vbox();
-        text.add(Theme.label("Choose your next challenge", Theme.display(26), Theme.TEXT));
+        text.add(Theme.label("A little practice. A new high score.", Theme.display(24), Theme.TEXT));
         text.add(Box.createVerticalStrut(6));
-        text.add(Theme.label("Play a quiz, a fish challenge, or both.", Theme.medium(14),
+        text.add(Theme.label("Choose a challenge below to get started.", Theme.medium(14),
                 Theme.MUTED));
         banner.add(text, BorderLayout.CENTER);
         JComponent art = new JComponent() {
@@ -74,11 +77,11 @@ class DashboardPanel extends JPanel {
         // game cards
         JPanel games = new JPanel(new GridLayout(1, 2, 16, 0));
         games.setOpaque(false);
-        games.setPreferredSize(new Dimension(0, 280));
-        games.add(gameCard(false, "General Knowledge Quiz", "Pick a category and difficulty",
-                "Start General Quiz", openQuiz));
-        games.add(gameCard(true, "Fish Challenge", "Memorize the fish, then answer",
-                "Play Fish Game", openFish));
+        games.setPreferredSize(new Dimension(0, 320));
+        games.add(gameCard(false, "Quiz + Fish", "<html>Choose a topic and answer 5–15 questions.<br>Then play the same number of fish rounds.<br>Both scores count toward your total.</html>",
+                "Set up my quiz", openQuiz));
+        games.add(gameCard(true, "Fish Challenge", "<html>Study each puzzle, then answer from memory.<br>Play " + GameEngine.ROUNDS + " rounds and build your score.<br>No general knowledge quiz required.</html>",
+                "Start fish challenge", openFish));
         JPanel gameArea = new JPanel(new BorderLayout());
         gameArea.setOpaque(false);
         gameArea.add(games, BorderLayout.NORTH);
@@ -142,7 +145,7 @@ class DashboardPanel extends JPanel {
         badgeRow.setOpaque(false);
         badgeRow.setAlignmentX(0f);
         badgeRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
-        badgeRow.add(badge, fish ? BorderLayout.EAST : BorderLayout.WEST);
+        badgeRow.add(badge, BorderLayout.WEST);
         p.add(badgeRow);
         p.add(Box.createVerticalStrut(14));
         JComponent t = Theme.label(name, Theme.display(22), Theme.TEXT);

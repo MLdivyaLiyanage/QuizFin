@@ -1,5 +1,8 @@
 package com.perisic.fish.engine;
 
+// AI-assisted corrections (OpenAI Codex, 2026-11-11): propagate storage failures
+// and include legacy mixed-case player names in personal bests. See SOURCES.md.
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -58,7 +61,7 @@ public class Leaderboard implements ScoreStore {
             ps.setTimestamp(6, Timestamp.from(Instant.ofEpochMilli(entry.time)));
             ps.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("Could not save score: " + e.getMessage());
+            throw new ScoreStorageException("Could not save score", e);
         }
     }
 
@@ -91,7 +94,7 @@ public class Leaderboard implements ScoreStore {
             out.sort(Comparator.comparingInt((ScoreEntry e) -> e.score).reversed()
                     .thenComparingLong(e -> e.time));
         } catch (SQLException e) {
-            System.err.println("Could not read leaderboard: " + e.getMessage());
+            throw new ScoreStorageException("Could not read leaderboard", e);
         }
 
         return out;
@@ -99,7 +102,7 @@ public class Leaderboard implements ScoreStore {
 
     @Override
     public synchronized int best(String player) {
-        String sql = "SELECT COALESCE(MAX(score), 0) AS best FROM scores WHERE player = ?";
+        String sql = "SELECT COALESCE(MAX(score), 0) AS best FROM scores WHERE LOWER(player) = LOWER(?)";
         try (Connection conn = open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, player == null ? "Guest" : player);

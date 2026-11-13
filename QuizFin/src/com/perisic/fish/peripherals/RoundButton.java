@@ -1,5 +1,7 @@
 package com.perisic.fish.peripherals;
 
+// AI-assisted focus/pressed-state updates (OpenAI Codex, 2026-11-11). See SOURCES.md.
+
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Graphics;
@@ -20,6 +22,8 @@ class RoundButton extends JButton {
     private Color fill = Theme.PRIMARY;
     private Color border = null;
     private boolean over = false;
+    private boolean keyboardFocus;
+    private boolean interactionFeedback = true;
     private int arc = 14;
 
     RoundButton(String text) {
@@ -32,7 +36,22 @@ class RoundButton extends JButton {
         setForeground(Color.WHITE);
         setBorder(new EmptyBorder(10, 18, 10, 18));
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override public void focusGained(java.awt.event.FocusEvent e) {
+                keyboardFocus = e.getCause() != java.awt.event.FocusEvent.Cause.MOUSE_EVENT;
+                repaint();
+            }
+            @Override public void focusLost(java.awt.event.FocusEvent e) { keyboardFocus = false; repaint(); }
+        });
+        addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override public void keyPressed(java.awt.event.KeyEvent e) { keyboardFocus = true; repaint(); }
+        });
         addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                keyboardFocus = false;
+                repaint();
+            }
             @Override
             public void mouseEntered(MouseEvent e) {
                 over = true;
@@ -45,6 +64,12 @@ class RoundButton extends JButton {
                 repaint();
             }
         });
+    }
+
+    /** Keep scored answer colours steady while leaving the control accessible. */
+    void setInteractionFeedback(boolean enabled) {
+        interactionFeedback = enabled;
+        repaint();
     }
 
     /** Sets fill, border (may be null) and text colour. */
@@ -62,7 +87,7 @@ class RoundButton extends JButton {
         Color f = fill;
         if (!isEnabled()) {
             f = new Color(0xD5, 0xDF, 0xEA);
-        } else if (over) {
+        } else if (interactionFeedback && (over || getModel().isPressed())) {
             f = fill.darker();
             if (fill.equals(Theme.CHIP) || fill.equals(Theme.CHIP_SEL) || fill.equals(Theme.CARD)) {
                 f = new Color(0xE4, 0xF0, 0xFB);
@@ -70,9 +95,12 @@ class RoundButton extends JButton {
         }
         g2.setColor(f);
         g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
-        if (border != null && isEnabled()) {
-            g2.setColor(border);
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
+        // Focus strengthens the existing outer edge; never add an inner outline.
+        boolean focused = hasFocus() && keyboardFocus && interactionFeedback && isEnabled();
+        if (isEnabled() && (border != null || focused)) {
+            g2.setStroke(new java.awt.BasicStroke(focused ? 2f : 1f));
+            g2.setColor(border != null ? border : getForeground());
+            g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, arc, arc);
         }
         g2.dispose();
         super.paintComponent(g);

@@ -103,14 +103,10 @@ final class QuizChoiceButton extends JToggleButton {
         if (isEnabled() && getModel().isRollover()) fill = new Color(0xE4F0FB);
         g.setColor(fill);
         g.fillRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 14, 14);
-        g.setColor(isEnabled() && isSelected() ? Theme.PRIMARY : Theme.CHIP_BORDER);
+        boolean focused = hasFocus() && keyboardFocus && isEnabled();
+        g.setStroke(new BasicStroke(focused ? 2f : 1f));
+        g.setColor(isEnabled() && (isSelected() || focused) ? Theme.PRIMARY : Theme.CHIP_BORDER);
         g.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 14, 14);
-        if (hasFocus() && keyboardFocus && isEnabled()) {
-            g.setColor(Theme.NAVY);
-            g.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND,
-                    1f, new float[] { 3f, 3f }, 0f));
-            g.drawRoundRect(5, 5, getWidth() - 11, getHeight() - 11, 10, 10);
-        }
         g.dispose();
         // Child labels render once through paintChildren, using their layout bounds.
     }

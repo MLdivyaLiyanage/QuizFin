@@ -1,5 +1,9 @@
 package com.perisic.fish.peripherals;
 
+// AI-assisted updates (OpenAI Codex, 2026-11-11): scrollable pages, confirmation
+// before navigation, compact account label, and asynchronous score-save status.
+// See SOURCES.md for scope and limitations.
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -18,8 +22,10 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
 import com.perisic.fish.auth.AccountInfo;
@@ -57,8 +63,10 @@ public class GameGUI extends JFrame {
         this.session = session;
         this.services = services;
         this.player = session.username;
-        setSize(1200, 840);
-        setMinimumSize(new Dimension(1100, 760));
+        java.awt.Rectangle available = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getMaximumWindowBounds();
+        setSize(Math.min(1200, available.width), Math.min(840, available.height));
+        setMinimumSize(new Dimension(Math.min(960, available.width), Math.min(640, available.height)));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -78,6 +86,7 @@ public class GameGUI extends JFrame {
 
     /** Logout: revoke the session (deletes the remember-me cookie), back to login. */
     private void logout() {
+        if (!confirmLeaveGame()) return;
         services.auth.logout(session);
         new LoginGUI(services);
         dispose();
@@ -134,7 +143,7 @@ public class GameGUI extends JFrame {
         b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
         b.setColors(Theme.NAVY, null, Color.WHITE);
         b.addActionListener(e -> {
-            if (!b.isSelected()) action.run();
+            if (!b.isSelected() && confirmLeaveGame()) action.run();
         });
         nav.put(key, b);
         side.add(b);
@@ -173,7 +182,7 @@ public class GameGUI extends JFrame {
         back.setColors(Theme.CARD, Theme.CHIP_BORDER, Theme.PRIMARY);
         back.getAccessibleContext().setAccessibleName("Go back");
         back.addActionListener(e -> {
-            if (backAction != null) backAction.run();
+            if (backAction != null && confirmLeaveGame()) backAction.run();
         });
         JPanel backHolder = new JPanel(new BorderLayout());
         backHolder.setOpaque(false);
@@ -226,7 +235,10 @@ public class GameGUI extends JFrame {
             names.setOpaque(false);
             names.setLayout(new BoxLayout(names, BoxLayout.Y_AXIS));
             names.add(Theme.label(player, Font.BOLD, 14, Color.WHITE));
-            names.add(Theme.label(accountLine(), Theme.nunito(Font.PLAIN, 11), new Color(0x9F, 0xB4, 0xCC)));
+            JLabel account = Theme.label("Player account", Theme.nunito(Font.PLAIN, 11), new Color(0x9F, 0xB4, 0xCC));
+            account.setToolTipText(accountLine());
+            names.add(account);
+            names.setToolTipText(player);
             chip.add(names, BorderLayout.CENTER);
             chip.setAlignmentX(0f);
             chip.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
@@ -249,6 +261,13 @@ public class GameGUI extends JFrame {
 
     // -------------------------------------------------------- navigation
 
+    private JComponent currentPage;
+
+    private boolean confirmLeaveGame() {
+        if (!(currentPage instanceof QuizPanel) && !(currentPage instanceof FishPanel)) return true;
+        return ConfirmDialog.leaveChallenge(this);
+    }
+
     private void setPage(String navKey, String t, String sub, JComponent page) {
         setPage(navKey, t, sub, page, "dashboard".equals(navKey) ? null : this::showDashboard);
     }
@@ -265,7 +284,13 @@ public class GameGUI extends JFrame {
             e.getValue().setColors(on ? Theme.NAV_ACTIVE : Theme.NAVY, null, Color.WHITE);
         }
         content.removeAll();
-        content.add(page, BorderLayout.CENTER);
+        currentPage = page;
+        JScrollPane scroll = new JScrollPane(new PageViewport(page));
+        scroll.setBorder(new EmptyBorder(0, 0, 0, 0));
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.getVerticalScrollBar().setUnitIncrement(24);
+        content.add(scroll, BorderLayout.CENTER);
         content.revalidate();
         content.repaint();
     }
@@ -273,7 +298,7 @@ public class GameGUI extends JFrame {
     /** Show the dashboard with the current player's saved best score. */
     public void showDashboard() {
         setPage(
-                "dashboard", "Dashboard", "Choose your next challenge and start collecting points",
+                "dashboard", "Your next challenge", "Practice your knowledge or test your memory",
                 new DashboardPanel(
                         services.scores.best(player), this::showQuizSetup, this::startFish
                 )
@@ -310,14 +335,29 @@ public class GameGUI extends JFrame {
     void showFishResult(GameEngine engine, Integer quizScore) {
         if (!engine.isFinished()) return;
         ScoreEntry entry = new ScoreEntry(engine.getPlayer(), quizScore, engine.getScore(), System.currentTimeMillis());
-        services.scores.add(entry);
         int pct = engine.getCorrectCount() * 100 / engine.getTotalRounds();
         String detail = entry.mode.label + " • "
                 + (quizScore == null ? "" : "Quiz: " + quizScore + " pts • ")
                 + "Fish: " + engine.getScore() + " pts";
-        setPage("fish", "Challenge Complete", "Your score has been added to the leaderboard",
-                new ResultPanel(pct, entry.score + " pts", detail,
-                        "Start New Quiz", this::showQuizSetup, "Leaderboard", this::showLeaderboard));
+        ResultPanel result = new ResultPanel(pct, entry.score + " pts", detail,
+                "Start New Quiz", this::showQuizSetup, "Leaderboard", this::showLeaderboard);
+        setPage("fish", "Challenge Complete", "Saving your score...", result);
+        // Interoperability work belongs off the Swing event-dispatch thread.
+        new SwingWorker<Void, Void>() {
+            @Override protected Void doInBackground() {
+                services.scores.add(entry);
+                return null;
+            }
+            @Override protected void done() {
+                try {
+                    get();
+                    if (currentPage == result) subtitle.setText("Your score has been added to the leaderboard");
+                } catch (Exception e) {
+                    System.err.println("Could not save completed game: " + e.getMessage());
+                    if (currentPage == result) subtitle.setText("Score could not be saved. This result is only shown here.");
+                }
+            }
+        }.execute();
     }
 
     public void showLeaderboard() {

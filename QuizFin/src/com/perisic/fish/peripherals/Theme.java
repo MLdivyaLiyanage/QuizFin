@@ -1,5 +1,7 @@
 package com.perisic.fish.peripherals;
 
+// AI-assisted secondary-text contrast update (OpenAI Codex, 2026-11-11). See SOURCES.md.
+
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -54,7 +56,7 @@ final class Theme {
     static final Color CHIP_SEL = new Color(0xD9, 0xEA, 0xFD);
     static final Color CHIP_BORDER = new Color(0xDD, 0xE8, 0xF2);
     static final Color TEXT = new Color(0x12, 0x2B, 0x4A);
-    static final Color MUTED = new Color(0x6B, 0x7F, 0x95);
+    static final Color MUTED = new Color(0x50, 0x65, 0x7C);
     static final Color ORANGE = new Color(0xE8, 0x89, 0x2B);
     static final Color GREEN = new Color(0x1E, 0x9E, 0x5A);
     static final Color GREEN_BG = new Color(0xDD, 0xF4, 0xE7);
