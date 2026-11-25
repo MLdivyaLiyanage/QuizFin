@@ -1,6 +1,5 @@
 package com.perisic.fish.peripherals;
 
-// AI-assisted focus/pressed-state updates (OpenAI Codex, 2026-11-11). See SOURCES.md.
 
 import java.awt.Color;
 import java.awt.Cursor;

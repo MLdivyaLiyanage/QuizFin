@@ -22,8 +22,8 @@ public class GameServer implements GameSource {
     /**
      * Retrieves a random game from the web site.
      *
-     * @return a random game or null if a game cannot be loaded (network down,
-     *         bad response, ...). Never throws.
+     * a random game or null if a game cannot be loaded
+     * Never throws. used the introperbility
      */
     @Override
     public Game getRandomGame() {

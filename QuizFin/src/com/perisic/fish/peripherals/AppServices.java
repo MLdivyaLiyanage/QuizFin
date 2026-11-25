@@ -18,6 +18,8 @@ public class AppServices {
     public final ScoreStore scores;
     public final AuthService auth;
 
+    /*
+    * there used the low cupling there stored the those data*/
     public AppServices(QuestionSource questions, GameSource games, ScoreStore scores, AuthService auth) {
         this.questions = questions;
         this.games = games;

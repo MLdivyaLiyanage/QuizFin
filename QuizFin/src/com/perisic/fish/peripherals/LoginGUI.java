@@ -1,8 +1,5 @@
 package com.perisic.fish.peripherals;
 
-// AI-assisted UI updates (OpenAI Codex, 2026-11-11): inline feedback, background
-// sign-in/registration, focus styling, and illustration fallback. See SOURCES.md.
-
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;

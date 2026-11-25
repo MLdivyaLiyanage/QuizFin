@@ -2,6 +2,7 @@ package com.perisic.fish.auth;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import org.postgresql.ds.PGSimpleDataSource;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -164,7 +165,47 @@ final class UserRepository {
     }
 
     private Connection open() throws SQLException {
-        return DriverManager.getConnection(url, user, password);
+        try {
+            return DriverManager.getConnection(url, user, password);
+        } catch (SQLException missing) {
+            // invalid_catalog_name: do not attempt DDL for authentication or network failures.
+            if (!"3D000".equals(missing.getSQLState())) {
+                throw missing;
+            }
+            try {
+                createDatabase(url, user, password);
+            } catch (SQLException failure) {
+                SQLException error = new SQLException(
+                        "Could not automatically create the configured database. "
+                        + "The db.user role must be able to connect to postgres and have CREATEDB permission. "
+                        + failure.getMessage(), failure.getSQLState(), failure);
+                error.addSuppressed(missing);
+                throw error;
+            }
+            return DriverManager.getConnection(url, user, password);
+        }
+    }
+
+    private synchronized void createDatabase(String url, String user, String password)
+            throws SQLException {
+        // Use the driver's URL parser to preserve hosts, ports, SSL and other options.
+        PGSimpleDataSource maintenance = new PGSimpleDataSource();
+        maintenance.setUrl(url);
+        String database = maintenance.getDatabaseName();
+        if (database == null || database.isBlank() || database.indexOf('\0') >= 0) {
+            throw new SQLException("Invalid database name in db.url", "3D000");
+        }
+        maintenance.setDatabaseName("postgres");
+        try (Connection connection = maintenance.getConnection(user, password);
+             Statement statement = connection.createStatement()) {
+            // Database identifiers cannot be bound as parameters; quote embedded quotes.
+            statement.executeUpdate("CREATE DATABASE \"" + database.replace("\"", "\"\"") + "\"");
+        } catch (SQLException failure) {
+            // Another app instance may have created the same database in the meantime.
+            if (!"42P04".equals(failure.getSQLState()) && !"23505".equals(failure.getSQLState())) {
+                throw failure;
+            }
+        }
     }
 
     private static String value(Properties db, String key, String fallback) {

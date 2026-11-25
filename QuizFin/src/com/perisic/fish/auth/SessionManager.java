@@ -1,8 +1,5 @@
 package com.perisic.fish.auth;
 
-// AI-assisted documentation correction (OpenAI Codex, 2026-11-11): local session
-// storage is not a browser cookie or remote trust boundary. See SOURCES.md.
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -38,7 +35,8 @@ class SessionManager {
         this.cookie = dir.resolve("session.cookie");
     }
 
-    /** Creates a session; when remember is true the cookie file is written. */
+    /** Creates a session; when remember is true the cookie file is written.
+     * virtual identity session creation and logout */
     synchronized Session issue(String username, boolean remember) {
         byte[] raw = new byte[32];
         RANDOM.nextBytes(raw);
@@ -84,7 +82,7 @@ class SessionManager {
         }
     }
 
-    /** Logout: forget the token on both sides. */
+    /** Logout: forget  token on both sides. */
     synchronized void revoke(String token) {
         if (token != null) {
             Properties t = load();

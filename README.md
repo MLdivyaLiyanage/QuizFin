@@ -22,6 +22,13 @@ Passwords are stored in `users.password_hash` using jBCrypt 0.4 with a random
 salt and cost 12. The IntelliJ module includes `lib/jbcrypt-0.4.jar`; command-line
 builds and runs must include `lib/*` on the classpath.
 
+Configure PostgreSQL credentials in `db.properties` (see `db.properties.example`)
+and start PostgreSQL before launching. The app automatically creates the database
+named in `db.url` if it is missing, then creates the users and scores tables.
+For database creation, the configured role must have `CREATEDB` permission and
+be able to connect to the `postgres` maintenance database on the same server.
+Existing databases do not require `CREATEDB` permission.
+
 Existing PBKDF2 accounts are upgraded after a successful password login.
 Legacy passwords longer than 72 UTF-8 bytes remain readable as PBKDF2; they need
 a password change to a value within bcrypt's limit before they can be upgraded.

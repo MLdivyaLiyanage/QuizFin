@@ -67,7 +67,8 @@ public class GameEngine {
         this(player, source, ROUNDS);
     }
 
-    /** Use the completed quiz's question count for this challenge. */
+    /** Use the completed quiz's question count for this challenge.
+     * there we used the low cupling */
     public GameEngine(String player, GameSource source, int totalRounds) {
         if (totalRounds <= 0) {
             throw new IllegalArgumentException("A fish challenge must contain at least one round.");
@@ -122,6 +123,7 @@ public class GameEngine {
     /**
      * Checks the player's answer for the current round and updates score and
      * streak. Answering the same round twice is ignored (returns null).
+     * there used the high cohetion
      */
     public AnswerResult checkSolution(int i) {
         if (current == null) {

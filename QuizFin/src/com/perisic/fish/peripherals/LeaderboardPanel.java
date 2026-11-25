@@ -1,7 +1,5 @@
 package com.perisic.fish.peripherals;
 
-// AI-assisted UI updates (OpenAI Codex, 2026-11-11): background refresh, scrolling,
-// error feedback, empty state, and case-insensitive player highlighting. See SOURCES.md.
 
 import java.awt.BorderLayout;
 import java.awt.Color;

@@ -1,9 +1,5 @@
 package com.perisic.fish.auth;
 
-// AI-assisted corrections (OpenAI Codex, 2026-11-11): canonical identity,
-// remembered-account validation, locale handling, schema retry, and removal of
-// automatic hardcoded credentials. See SOURCES.md for the assistance record.
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -21,24 +17,18 @@ import com.perisic.fish.auth.AccountInfo;
  * Authentication facade used by the GUI: register, login, resume ("remember
  * me" cookie) and logout.
  *
- * <p>Accounts are rows in the PostgreSQL {@code users} table (username,
- * display name, bcrypt hash, timestamps) instead of {@code users.properties}.
+ * Accounts are rows in the PostgreSQL table (username,
+ * display name, bcrypt hash, timestamps) instead of users.properties.
  * Passwords are never stored in plain text: they are salted and hashed with
- * {@link PasswordHasher} (bcrypt, cost 12).</p>
+ * PasswordHasher (bcrypt, cost 12).
  *
- * <p>Connection settings come from {@code db.properties} in the working
- * directory, then {@code ~/.quizfin/db.properties}; the environment variables
- * {@code QUIZFIN_DB_URL}, {@code QUIZFIN_DB_USER} and
- * {@code QUIZFIN_DB_PASSWORD} win over both.</p>
+ * Connection settings come from db.properties in the working
+ * directory, then {.quizfin/db.properties}; the environment variables
+ * {QUIZFIN_DB_URL}, {QUIZFIN_DB_USER} and
+ * {QUIZFIN_DB_PASSWORD} win over both.
  *
- * <pre>
- * db.url=jdbc:postgresql://localhost:5432/quizfin
- * db.user=postgres
- * db.password=your-password
- * </pre>
- *
- * <p>Sessions (the "remember me" cookie) stay in the user's data folder and are
- * handled by {@link SessionManager}, so nothing else in the app changes.</p>
+ * Sessions (the "remember me" cookie) stay in the user's data folder and are
+ * handled by {SessionManager}, so nothing else in the app changes.
  */
 public class AuthService {
     private static final int MAX_FAILS = 5;
@@ -89,7 +79,7 @@ public class AuthService {
         }
     }
 
-    /** Creates an account. Username 3-20 letters/digits/_, password 6+ chars. */
+    /** Creates an account. Username 3-20 letters/digits/_, password 6+ chars. Virtual identity registration*/
     public synchronized void register(String username, char[] password) throws AuthException {
         String name = username == null ? "" : username.trim();
         if (!name.matches("[A-Za-z0-9_]{3,20}")) {

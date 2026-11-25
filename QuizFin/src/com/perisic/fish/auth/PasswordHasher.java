@@ -18,7 +18,9 @@ final class PasswordHasher {
 
     private PasswordHasher() {
     }
-
+/*
+ virtual identity password hash
+ */
     static String hash(char[] password) {
         if (!fitsBcrypt(password)) {
             throw new IllegalArgumentException("Password must be at most 72 UTF-8 bytes.");

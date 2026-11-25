@@ -171,7 +171,7 @@ class FishPanel extends JPanel {
         }
     }
 
-    /** Loads the next fish image from the API without freezing the UI. */
+    /** Loads the next fish image from the API without freezing the UI. event background loading */
     private void loadNext() {
         accepting = false;
         setAnswersEnabled(false);
@@ -284,6 +284,10 @@ class FishPanel extends JPanel {
         super.removeNotify();
     }
 
+    /*
+     button event calls handler. It asks the engine to check the answer, updates the screen and schedules
+the next round also the there available the event driven click and handler.
+     */
     private void onAnswer(int n, RoundButton button) {
         if (!accepting) {
             return;

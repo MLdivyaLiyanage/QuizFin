@@ -16,8 +16,6 @@ public class Game {
 
     /**
      * Image of the game and what is the solution to the game.
-     * @param image
-     * @param solution
      */
     public Game(BufferedImage image, int solution) {
         super();

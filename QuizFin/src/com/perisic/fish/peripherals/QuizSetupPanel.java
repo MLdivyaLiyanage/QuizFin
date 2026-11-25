@@ -17,6 +17,7 @@ import javax.swing.AbstractAction;
 import javax.swing.KeyStroke;
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.DefaultListCellRenderer;
@@ -93,7 +94,7 @@ class QuizSetupPanel extends JPanel {
         categoryBox.setForeground(Theme.TEXT);
         categoryBox.setBackground(Theme.CHIP);
         categoryBox.setPreferredSize(new Dimension(300, 44));
-        categoryBox.setMaximumRowCount(10);
+        categoryBox.setMaximumRowCount(8);
         categoryBox.getAccessibleContext().setAccessibleName("Quiz category");
         categoryBox.setRenderer(new DefaultListCellRenderer() {
             private static final long serialVersionUID = 1L;
@@ -213,6 +214,8 @@ class QuizSetupPanel extends JPanel {
     }
 
     private void loadCategories() {
+        // Do not open a one-row popup while the full category list is loading.
+        categoryBox.setEnabled(false);
         new SwingWorker<List<Category>, Void>() {
             @Override
             protected List<Category> doInBackground() {
@@ -225,15 +228,20 @@ class QuizSetupPanel extends JPanel {
                     List<Category> cats = get();
                     if (cats == null || cats.isEmpty() || loading) return;
                     Category selected = (Category) categoryBox.getSelectedItem();
-                    categoryBox.removeAllItems();
+                    DefaultComboBoxModel<Category> model = new DefaultComboBoxModel<>();
                     for (Category c : cats) {
-                        categoryBox.addItem(c);
+                        model.addElement(c);
                         if (selected != null && c.id == selected.id) {
-                            categoryBox.setSelectedItem(c);
+                            model.setSelectedItem(c);
                         }
                     }
+                    // Close any old popup so its height is recalculated for the new model.
+                    categoryBox.hidePopup();
+                    categoryBox.setModel(model);
                 } catch (Exception ignored) {
                     // keep the default General Knowledge entry
+                } finally {
+                    categoryBox.setEnabled(!loading);
                 }
             }
         }.execute();

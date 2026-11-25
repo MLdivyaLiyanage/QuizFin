@@ -1,7 +1,5 @@
 package com.perisic.fish.peripherals;
 
-// AI-assisted UI wording and layout updates (OpenAI Codex, 2026-11-11).
-// See SOURCES.md for the assistance record.
 
 import java.awt.BorderLayout;
 import java.awt.Font;

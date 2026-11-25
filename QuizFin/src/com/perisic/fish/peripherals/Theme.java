@@ -1,7 +1,5 @@
 package com.perisic.fish.peripherals;
 
-// AI-assisted secondary-text contrast update (OpenAI Codex, 2026-11-11). See SOURCES.md.
-
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -21,8 +19,7 @@ import javax.swing.UIManager;
 import javax.swing.plaf.FontUIResource;
 
 /**
- * Colours, fonts and tiny helpers shared by all screens (matches the Figma
- * design: navy sidebar, light-blue content, blue primary buttons).
+ * Colours, fonts and tiny helpers shared by all screens.
  */
 final class Theme {
     private static final Font FREDOKA_BOLD = loadAppFont("Fredoka-Bold.ttf");

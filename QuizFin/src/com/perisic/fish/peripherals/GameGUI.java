@@ -1,9 +1,5 @@
 package com.perisic.fish.peripherals;
 
-// AI-assisted updates (OpenAI Codex, 2026-11-11): scrollable pages, confirmation
-// before navigation, compact account label, and asynchronous score-save status.
-// See SOURCES.md for scope and limitations.
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;

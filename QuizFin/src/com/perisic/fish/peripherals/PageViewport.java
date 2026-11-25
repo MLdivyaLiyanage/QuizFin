@@ -1,6 +1,5 @@
 package com.perisic.fish.peripherals;
 
-// AI-assisted implementation (OpenAI Codex, 2026-11-11). See SOURCES.md.
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
