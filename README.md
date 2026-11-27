@@ -6,6 +6,8 @@ The Java Swing desktop interface starts at `com.perisic.fish.peripherals.LoginGU
 The dashboard explains both routes: Quiz + Fish combines a knowledge quiz with
 matching fish rounds; Fish Challenge starts a standalone memory challenge.
 Forms show inline feedback and run sign-in and registration in the background.
+The Create account form matches the login screen, checks matching passwords,
+provides Show/Hide controls, and scrolls on smaller screens.
 Use Tab to move between controls and Enter to sign in. Resize the main window;
 pages scroll when needed to keep controls reachable. Leaving an unfinished
 challenge through navigation or logout asks before discarding progress.
@@ -57,6 +59,9 @@ java -cp 'target/assessment-check;lib/*' com.perisic.fish.engine.GameFlowTest
 java -cp 'target/assessment-check;lib/*' com.perisic.fish.auth.PasswordHasherTest
 java -cp 'target/assessment-check;lib/*' com.perisic.fish.auth.SessionManagerTest
 java '-Djava.awt.headless=true' -cp 'target/assessment-check;lib/*' com.perisic.fish.peripherals.QuizButtonUiTest
+java '-Djava.awt.headless=true' -cp 'target/assessment-check;lib/*' com.perisic.fish.peripherals.LeaderboardUiTest
+java '-Djava.awt.headless=true' -cp 'target/assessment-check;lib/*' com.perisic.fish.peripherals.LoginLayoutUiTest
+java '-Djava.awt.headless=true' -cp 'target/assessment-check;lib/*' com.perisic.fish.peripherals.RegistrationUiTest
 ```
 
 Optional checks require local PostgreSQL or internet access, respectively:
