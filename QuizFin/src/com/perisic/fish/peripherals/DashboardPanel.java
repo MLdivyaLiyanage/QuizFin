@@ -78,7 +78,7 @@ class DashboardPanel extends JPanel {
         games.setPreferredSize(new Dimension(0, 320));
         games.add(gameCard(false, "Quiz + Fish", "<html>Choose a topic and answer 5–15 questions.<br>Then play the same number of fish rounds.<br>Both scores count toward your total.</html>",
                 "Set up my quiz", openQuiz));
-        games.add(gameCard(true, "Fish Challenge", "<html>Study each puzzle, then answer from memory.<br>Play " + GameEngine.ROUNDS + " rounds and build your score.<br>No general knowledge quiz required.</html>",
+        games.add(gameCard(true, "Fish Challenge", "<html>Explore Shallows, Reef and Deep sea.<br>Preview time drops from 5 to 4 to 3 seconds.<br>Play " + GameEngine.ROUNDS + " rounds and build your streak.</html>",
                 "Start fish challenge", openFish));
         JPanel gameArea = new JPanel(new BorderLayout());
         gameArea.setOpaque(false);

@@ -29,8 +29,6 @@ import com.perisic.fish.engine.GameEngine.AnswerResult;
  */
 class FishPanel extends JPanel {
     private static final long serialVersionUID = 1L;
-    static final int MEMORY_SECONDS = 5;
-    private static final int MEMORY_MILLIS = MEMORY_SECONDS * 1000;
     private static final Color BONUS_INK = new Color(0x0A, 0x70, 0x64);
 
     private final GameGUI frame;
@@ -217,12 +215,13 @@ class FishPanel extends JPanel {
     }
 
     private void startPreview() {
-        phaseLabel.setText("MEMORIZE THE FISH");
+        int memoryMillis = engine.getMemorySeconds() * 1000;
+        phaseLabel.setText(engine.getMemoryStageName().toUpperCase(java.util.Locale.ROOT) + " • MEMORIZE");
         feedback.setText("Count the fish before the picture disappears.");
         countdown.setForeground(Theme.PRIMARY);
-        countdown.setMaximum(MEMORY_MILLIS);
-        showCountdown(MEMORY_MILLIS, " to look");
-        previewEndsAt = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(MEMORY_MILLIS);
+        countdown.setMaximum(memoryMillis);
+        showCountdown(memoryMillis, " to look");
+        previewEndsAt = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(memoryMillis);
         countdownTimer.start();
     }
 
@@ -293,6 +292,7 @@ the next round also the there available the event driven click and handler.
             return;
         }
         accepting = false;
+        for (RoundButton digit : digits) digit.setInteractionFeedback(false);
         clearCountdown();
         AnswerResult r = engine.checkSolution(n);
         if (r == null) {
@@ -334,6 +334,7 @@ the next round also the there available the event driven click and handler.
 
     private void resetDigits() {
         for (RoundButton b : digits) {
+            b.setInteractionFeedback(true);
             b.setColors(Theme.CHIP, Theme.CHIP_BORDER, Theme.TEXT);
         }
     }

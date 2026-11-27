@@ -1,20 +1,14 @@
 package com.perisic.fish.peripherals;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
-import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,21 +17,16 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 import javax.imageio.ImageIO;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
-import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.JToggleButton;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -58,13 +47,14 @@ public class LoginGUI extends JFrame {
     }
 
     private final transient AppServices services;
-    private final JTextField txuser = new JTextField(18);
-    private final JPasswordField pass = new JPasswordField(18);
-    private final JCheckBox remember = new JCheckBox("Remember me");
-    private final RoundButton blogin = new RoundButton("Sign in");
-    private final RoundButton createAccount = new RoundButton("Create account");
-    private final JLabel loginSubtitle = Theme.label("Sign in to continue your adventure", Font.PLAIN, 13, Theme.MUTED);
-    private final JTextArea loginFeedback = new JTextArea(2, 24);
+    private final LoginView view = new LoginView();
+    private final JTextField txuser = view.txuser;
+    private final JPasswordField pass = view.pass;
+    private final JCheckBox remember = view.remember;
+    private final RoundButton blogin = view.blogin;
+    private final RoundButton createAccount = view.createAccount;
+    private final JLabel loginSubtitle = view.loginSubtitle;
+    private final JTextArea loginFeedback = view.loginFeedback;
     private boolean signingIn;
 
     LoginGUI(AppServices services) {
@@ -79,15 +69,14 @@ public class LoginGUI extends JFrame {
         }
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(880, 640));
-
-        JPanel root = new JPanel(new BorderLayout());
-        root.setPreferredSize(new Dimension(960, 640));
-        root.add(buildBrand(), BorderLayout.WEST);
-        root.add(buildForm(), BorderLayout.CENTER);
-        getContentPane().add(root, BorderLayout.CENTER);
+        java.awt.Rectangle available = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getMaximumWindowBounds();
+        setMinimumSize(new Dimension(Math.min(720, available.width), Math.min(520, available.height)));
+        setContentPane(view);
         pack();
+        setSize(Math.min(getWidth(), available.width), Math.min(getHeight(), available.height));
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         // events
         blogin.addActionListener(e -> doLogin());
@@ -98,43 +87,8 @@ public class LoginGUI extends JFrame {
         txuser.requestFocusInWindow();
     }
 
-    private static JPanel buildBrand() {
-        BufferedImage illustration = loadIllustration();
-        JPanel left = new JPanel(new BorderLayout()) {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(illustration.getRGB(200, 0)));
-                g2.fillOval(145, 77, 290, 290);
-                g2.setColor(new Color(illustration.getRGB(0, 300)));
-                g2.fillOval(-110, 406, 267, 267);
-                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                int imageHeight = getWidth() * illustration.getHeight() / illustration.getWidth();
-                g2.drawImage(illustration, 0, 170, getWidth(), imageHeight, null);
-                g2.dispose();
-            }
-        };
-        left.setPreferredSize(new Dimension(420, 578));
-        left.setBackground(new Color(illustration.getRGB(0, 0)));
-        JPanel brand = new JPanel();
-        brand.setOpaque(false);
-        brand.setLayout(new BoxLayout(brand, BoxLayout.Y_AXIS));
-        brand.setBorder(BorderFactory.createEmptyBorder(46, 48, 0, 20));
-        brand.add(Theme.label("QUIZFIN", Theme.display(34), Theme.TEXT));
-        brand.add(Box.createVerticalStrut(8));
-        brand.add(Theme.label("Two games. One adventure.", Font.PLAIN, 15, new Color(0x376681)));
-        brand.add(Box.createVerticalStrut(10));
-        brand.add(Theme.label("General knowledge + fish identification", Font.PLAIN, 13, Theme.MUTED));
-        left.add(brand, BorderLayout.NORTH);
-        return left;
-    }
-
     static BufferedImage loadIllustration() {
-        String resource = "/com/perisic/fish/peripherals/images/login-illustration.png";
+        String resource = "/com/perisic/fish/peripherals/images/QuizFin_Welcome_Panel.png";
         try (InputStream input = LoginGUI.class.getResourceAsStream(resource)) {
             BufferedImage image;
             if (input != null) {
@@ -166,131 +120,8 @@ public class LoginGUI extends JFrame {
         }
     }
 
-    private JPanel buildForm() {
-        JPanel right = new JPanel(new GridBagLayout());
-        right.setBackground(Theme.BG);
-        JPanel form = new RoundPanel(Color.WHITE, 36, new GridBagLayout());
-        form.setPreferredSize(new Dimension(400, 530));
-        form.setBorder(BorderFactory.createEmptyBorder(28, 30, 28, 30));
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.weightx = 1;
-        c.insets = new Insets(3, 0, 3, 0);
-
-        form.add(Theme.label("Welcome back!", Theme.display(28), Theme.TEXT), c);
-        form.add(loginSubtitle, c);
-        c.insets = new Insets(24, 0, 5, 0);
-        JLabel usernameLabel = Theme.label("Username", Font.BOLD, 14, Theme.TEXT);
-        usernameLabel.setLabelFor(txuser);
-        form.add(usernameLabel, c);
-        c.insets = new Insets(3, 0, 3, 0);
-        form.add(buildInput(txuser), c);
-        c.insets = new Insets(16, 0, 5, 0);
-        JLabel passwordLabel = Theme.label("Password", Font.BOLD, 14, Theme.TEXT);
-        passwordLabel.setLabelFor(pass);
-        form.add(passwordLabel, c);
-        c.insets = new Insets(3, 0, 3, 0);
-        form.add(buildInput(pass), c);
-        remember.setOpaque(false);
-        remember.setFont(Theme.font(Font.PLAIN, 13));
-        remember.setForeground(Theme.MUTED);
-        form.add(remember, c);
-        loginFeedback.setEditable(false);
-        loginFeedback.setFocusable(false);
-        loginFeedback.setOpaque(false);
-        loginFeedback.setLineWrap(true);
-        loginFeedback.setWrapStyleWord(true);
-        loginFeedback.setFont(Theme.nunitoSemiBold(13));
-        loginFeedback.setForeground(Theme.RED);
-        loginFeedback.getAccessibleContext().setAccessibleName("Sign in feedback");
-        form.add(loginFeedback, c);
-        c.insets = new Insets(10, 0, 0, 0);
-        blogin.setFont(Theme.font(Font.BOLD, 16));
-        blogin.setPreferredSize(new Dimension(340, 44));
-        form.add(blogin, c);
-        c.insets = new Insets(10, 0, 0, 0);
-        createAccount.setColors(Theme.CHIP, Theme.CHIP_BORDER, Theme.PRIMARY);
-        createAccount.setPreferredSize(new Dimension(340, 40));
-        form.add(createAccount, c);
-        right.add(form);
-        return right;
-    }
-
     private static JPanel buildInput(JTextField field) {
-        field.setOpaque(false);
-        field.setFont(Theme.font(Font.PLAIN, 15));
-        field.setForeground(new Color(0x376681));
-        field.setCaretColor(Theme.TEXT);
-        field.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
-        JPanel input = new RoundPanel(new Color(0xF5F8FC), 14, new BorderLayout());
-        input.setPreferredSize(new Dimension(340, 44));
-        input.setMinimumSize(new Dimension(340, 44));
-        input.add(field, BorderLayout.CENTER);
-        field.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override public void focusGained(java.awt.event.FocusEvent e) {
-                input.setBorder(BorderFactory.createLineBorder(Theme.PRIMARY, 2, true));
-            }
-            @Override public void focusLost(java.awt.event.FocusEvent e) {
-                input.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
-            }
-        });
-        input.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
-        if (field instanceof JPasswordField password) {
-            input.add(passwordVisibilityButton(password), BorderLayout.EAST);
-        }
-        return input;
-    }
-
-    private static JToggleButton passwordVisibilityButton(JPasswordField password) {
-        char mask = password.getEchoChar();
-        JToggleButton toggle = new JToggleButton(new PasswordEyeIcon(false));
-        toggle.setSelectedIcon(new PasswordEyeIcon(true));
-        toggle.setContentAreaFilled(false);
-        toggle.setBorder(BorderFactory.createEmptyBorder());
-        toggle.setPreferredSize(new Dimension(44, 44));
-        toggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        toggle.getAccessibleContext().setAccessibleName("Show password");
-        toggle.setToolTipText("Show password");
-        toggle.addItemListener(e -> {
-            boolean visible = toggle.isSelected();
-            password.setEchoChar(visible ? '\0' : mask);
-            toggle.setToolTipText(visible ? "Hide password" : "Show password");
-            toggle.getAccessibleContext().setAccessibleName(visible ? "Hide password" : "Show password");
-        });
-        return toggle;
-    }
-
-    private record PasswordEyeIcon(boolean crossed) implements Icon {
-        @Override
-        public int getIconWidth() {
-            return 20;
-        }
-
-        @Override
-        public int getIconHeight() {
-            return 20;
-        }
-
-        @Override
-        public void paintIcon(Component component, Graphics graphics, int x, int y) {
-            Graphics2D g = (Graphics2D) graphics.create();
-            g.translate(x, y);
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setColor(Theme.NAV_ACTIVE);
-            g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            Path2D eye = new Path2D.Float();
-            eye.moveTo(1, 10);
-            eye.curveTo(6, 2, 14, 2, 19, 10);
-            eye.curveTo(14, 18, 6, 18, 1, 10);
-            eye.closePath();
-            g.draw(eye);
-            g.drawOval(7, 7, 6, 6);
-            if (crossed) {
-                g.drawLine(3, 3, 17, 17);
-            }
-            g.dispose();
-        }
+        return LoginView.buildInput(field);
     }
 
     private void doLogin() {

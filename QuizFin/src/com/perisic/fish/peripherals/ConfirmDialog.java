@@ -49,7 +49,7 @@ final class ConfirmDialog {
 
     /** Content is separate so its layout and actions can be checked without opening a window. */
     static JPanel leaveChallengeContent(Consumer<Boolean> choice) {
-        JPanel surface = new JPanel(new BorderLayout());
+        JPanel surface = new BackgroundPanel(new BorderLayout());
         surface.setBackground(Theme.BG);
         surface.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Theme.CHIP_BORDER), new EmptyBorder(12, 12, 12, 12)));

@@ -64,6 +64,7 @@ public class GameGUI extends JFrame {
         setSize(Math.min(1200, available.width), Math.min(840, available.height));
         setMinimumSize(new Dimension(Math.min(960, available.width), Math.min(640, available.height)));
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         getContentPane().setBackground(Theme.BG);
@@ -147,19 +148,7 @@ public class GameGUI extends JFrame {
     }
 
     private JComponent buildMain() {
-        JPanel main = new JPanel(new BorderLayout()) {
-            private static final long serialVersionUID = 1L;
-            @Override
-            protected void paintComponent(Graphics graphics) {
-                super.paintComponent(graphics);
-                Graphics2D g = (Graphics2D) graphics.create();
-                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g.setColor(new Color(0xE7F2FA));
-                g.fillOval(getWidth() - 320, -85, 260, 260);
-                g.fillOval(getWidth() - 210, getHeight() - 235, 360, 360);
-                g.dispose();
-            }
-        };
+        JPanel main = new BackgroundPanel(new BorderLayout());
         main.setBackground(Theme.BG);
         main.setBorder(new EmptyBorder(24, 34, 24, 34));
 
@@ -323,8 +312,8 @@ public class GameGUI extends JFrame {
     }
 
     private void startFish(int rounds, Integer quizScore) {
-        setPage("fish", "Fish Memory Challenge", "Memorize for " + FishPanel.MEMORY_SECONDS
-                        + " seconds, then answer from memory • " + rounds + " rounds",
+        setPage("fish", "Fish Memory Challenge", "Preview: " + GameEngine.INITIAL_MEMORY_SECONDS
+                        + " to " + GameEngine.FINAL_MEMORY_SECONDS + " seconds as you progress • " + rounds + " rounds",
                 new FishPanel(this, rounds, quizScore));
     }
 
@@ -332,11 +321,15 @@ public class GameGUI extends JFrame {
         if (!engine.isFinished()) return;
         ScoreEntry entry = new ScoreEntry(engine.getPlayer(), quizScore, engine.getScore(), System.currentTimeMillis());
         int pct = engine.getCorrectCount() * 100 / engine.getTotalRounds();
-        String detail = entry.mode.label + " • "
+        String detail = "<html><div style='text-align:center'>" + entry.mode.label + " • "
                 + (quizScore == null ? "" : "Quiz: " + quizScore + " pts • ")
-                + "Fish: " + engine.getScore() + " pts";
+                + "Fish: " + engine.getScore() + " pts<br>"
+                + engine.getCorrectCount() + "/" + engine.getTotalRounds() + " correct (" + pct
+                + "%) • Best streak: " + engine.getBestStreak() + "</div></html>";
         ResultPanel result = new ResultPanel(pct, entry.score + " pts", detail,
-                "Start New Quiz", this::showQuizSetup, "Leaderboard", this::showLeaderboard);
+                quizScore == null ? "Play Fish Again" : "Start New Quiz",
+                quizScore == null ? this::startFish : this::showQuizSetup,
+                "Leaderboard", this::showLeaderboard);
         setPage("fish", "Challenge Complete", "Saving your score...", result);
         // Interoperability work belongs off the Swing event-dispatch thread.
         new SwingWorker<Void, Void>() {

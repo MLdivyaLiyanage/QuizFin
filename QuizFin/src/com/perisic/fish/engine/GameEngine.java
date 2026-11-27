@@ -22,6 +22,8 @@ public class GameEngine {
     public static final long SPEED_LIMIT_MS = 5000;
     public static final int STREAK_BONUS = 5;
     public static final int STREAK_MIN = 3;
+    public static final int INITIAL_MEMORY_SECONDS = 5;
+    public static final int FINAL_MEMORY_SECONDS = 3;
 
     /** Outcome of one answer. */
     public static class AnswerResult {
@@ -67,8 +69,7 @@ public class GameEngine {
         this(player, source, ROUNDS);
     }
 
-    /** Use the completed quiz's question count for this challenge.
-     * there we used the low cupling */
+    /** Use the completed quiz's question count for this challenge. */
     public GameEngine(String player, GameSource source, int totalRounds) {
         if (totalRounds <= 0) {
             throw new IllegalArgumentException("A fish challenge must contain at least one round.");
@@ -97,7 +98,7 @@ public class GameEngine {
             return current.getImage();
         }
         Game g = theGames.getRandomGame();
-        if (g == null || g.getImage() == null) {
+        if (g == null || g.getImage() == null || g.getSolution() < 0 || g.getSolution() > 9) {
             return null;
         }
         current = g;
@@ -123,10 +124,9 @@ public class GameEngine {
     /**
      * Checks the player's answer for the current round and updates score and
      * streak. Answering the same round twice is ignored (returns null).
-     * there used the high cohetion
      */
     public AnswerResult checkSolution(int i) {
-        if (current == null) {
+        if (current == null || i < 0 || i > 9) {
             return null;
         }
         int solution = current.getSolution();
@@ -174,5 +174,22 @@ public class GameEngine {
 
     public int getCorrectCount() {
         return correctCount;
+    }
+
+    /** Advance by round position, so every player follows the same progression. */
+    private int memoryStage() {
+        return (int) ((long) (Math.max(1, round) - 1) * 3 / totalRounds);
+    }
+
+    public int getMemorySeconds() {
+        return INITIAL_MEMORY_SECONDS - memoryStage();
+    }
+
+    public String getMemoryStageName() {
+        switch (memoryStage()) {
+            case 1: return "Reef";
+            case 2: return "Deep sea";
+            default: return "Shallows";
+        }
     }
 }

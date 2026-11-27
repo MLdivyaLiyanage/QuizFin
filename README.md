@@ -3,8 +3,17 @@ QuizFin is a Java Swing desktop game with a Fish Memory Challenge and an optiona
 general knowledge quiz followed by matching fish rounds.
 
 The Java Swing desktop interface starts at `com.perisic.fish.peripherals.LoginGUI`.
+Login and gameplay open maximized, keeping the normal Windows title bar and
+taskbar. Restore the window to resize it; the login card stays centred in the
+right column and scrolls vertically when space is limited.
 The dashboard explains both routes: Quiz + Fish combines a knowledge quiz with
 matching fish rounds; Fish Challenge starts a standalone memory challenge.
+The fish challenge progresses through Shallows, Reef, and Deep sea by round
+position, with 5-, 4-, and 3-second memory previews. Very short challenges may
+not reach every stage. The five-second speed bonus starts after the picture
+is hidden; players can still answer when that bonus ends. Results show fish
+accuracy and best streak, with a mode-appropriate replay action. Malformed
+fish puzzles (missing images or solutions outside 0-9) consume no round.
 Forms show inline feedback and run sign-in and registration in the background.
 The Create account form matches the login screen, checks matching passwords,
 provides Show/Hide controls, and scrolls on smaller screens.
