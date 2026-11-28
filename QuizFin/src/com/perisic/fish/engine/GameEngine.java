@@ -69,7 +69,7 @@ public class GameEngine {
         this(player, source, ROUNDS);
     }
 
-    /** Use the completed quiz's question count for this challenge. */
+    /** Use the completed quiz's question count for this challenge.cinstructors receiving gamesource */
     public GameEngine(String player, GameSource source, int totalRounds) {
         if (totalRounds <= 0) {
             throw new IllegalArgumentException("A fish challenge must contain at least one round.");
@@ -86,9 +86,6 @@ public class GameEngine {
     /**
      * Loads the next fish image from the Fish API (blocking - call off the UI
      * thread).
-     *
-     * @return the image, or null if the API could not be reached. In that case
-     *         the round counter is not advanced, so it can simply be retried.
      */
     public BufferedImage nextGame() {
         if (isFinished()) {

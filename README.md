@@ -8,6 +8,12 @@ taskbar. Restore the window to resize it; the login card stays centred in the
 right column and scrolls vertically when space is limited.
 The dashboard explains both routes: Quiz + Fish combines a knowledge quiz with
 matching fish rounds; Fish Challenge starts a standalone memory challenge.
+The leaderboard offers All games, Quiz + Fish, and Fish only rankings. Completed
+attempts are saved individually, then added per player and mode for the leaderboard.
+For example, Quiz + Fish scores of 70 and 80 become one 150-point entry; that
+player's Fish only score of 90 remains a separate 90-point entry. Totals are
+calculated before selecting the top ten. Last played shows the latest attempt
+in that group. The dashboard's best score still refers to a single completed run.
 The fish challenge progresses through Shallows, Reef, and Deep sea by round
 position, with 5-, 4-, and 3-second memory previews. Very short challenges may
 not reach every stage. The five-second speed bonus starts after the picture

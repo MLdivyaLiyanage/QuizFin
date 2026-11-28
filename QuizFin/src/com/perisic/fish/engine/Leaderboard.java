@@ -68,13 +68,35 @@ public class Leaderboard implements ScoreStore {
 
     @Override
     public synchronized List<ScoreEntry> top(int n) {
-        List<ScoreEntry> out = new ArrayList<>();
-        String sql = "SELECT player, quiz_score, fish_score, mode, played_at "
-                + "FROM scores ORDER BY score DESC, played_at ASC LIMIT ?";
+        return top(n, null);
+    }
 
+    @Override
+    public synchronized List<ScoreEntry> top(int n, ScoreEntry.Mode mode) {
+        String sql = "SELECT player, quiz_score, fish_score, mode, played_at "
+                + "FROM scores " + (mode == null ? "" : "WHERE mode = ? ")
+                + "ORDER BY score DESC, played_at ASC, id ASC LIMIT ?";
+        return readScores(sql, n, mode);
+    }
+
+    @Override
+    public synchronized List<ScoreEntry> totals(int n, ScoreEntry.Mode mode) {
+        String sql = "SELECT LOWER(player) AS player, SUM(quiz_score) AS quiz_score, "
+                + "SUM(fish_score) AS fish_score, mode, MAX(played_at) AS played_at "
+                + "FROM scores " + (mode == null ? "" : "WHERE mode = ? ")
+                + "GROUP BY LOWER(player), mode "
+                + "ORDER BY SUM(COALESCE(quiz_score, 0) + fish_score) DESC, "
+                + "MAX(played_at) ASC, LOWER(player) ASC, mode ASC LIMIT ?";
+        return readScores(sql, n, mode);
+    }
+
+    private List<ScoreEntry> readScores(String sql, int n, ScoreEntry.Mode mode) {
+        List<ScoreEntry> out = new ArrayList<>();
         try (Connection conn = open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, Math.max(0, n));
+            int parameter = 1;
+            if (mode != null) ps.setString(parameter++, mode.name());
+            ps.setInt(parameter, Math.max(0, n));
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {

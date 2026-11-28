@@ -15,6 +15,7 @@ import java.util.List;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -25,7 +26,7 @@ import javax.swing.border.EmptyBorder;
 import com.perisic.fish.engine.ScoreEntry;
 import com.perisic.fish.engine.ScoreStore;
 
-/** Top ten completed runs with score details and background refresh. */
+/** Top ten cumulative player/mode totals with background refresh. */
 class LeaderboardPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private final ScoreStore scores;
@@ -36,6 +37,14 @@ class LeaderboardPanel extends JPanel {
     private final JLabel personal = Theme.label("—", Font.BOLD, 24, Theme.PRIMARY);
     private final JLabel runCount = Theme.label("—", Font.BOLD, 24, Theme.TEXT);
     private final RoundButton refresh = new RoundButton("Refresh");
+    private record ModeChoice(String label, ScoreEntry.Mode mode) {
+        @Override public String toString() { return label; }
+    }
+    private final JComboBox<ModeChoice> modeFilter = new JComboBox<>(new ModeChoice[] {
+            new ModeChoice("All games", null),
+            new ModeChoice("Quiz + Fish", ScoreEntry.Mode.QUIZ_AND_FISH),
+            new ModeChoice("Fish only", ScoreEntry.Mode.FISH_ONLY)
+    });
     private final Timer refreshTimer = new Timer(5000, e -> refreshScores());
     private boolean refreshing;
     private boolean hasResults;
@@ -55,30 +64,46 @@ class LeaderboardPanel extends JPanel {
                 Theme.label("Your next personal best starts with one more challenge.", Font.PLAIN, 13, Theme.MUTED)));
         refresh.setFont(Theme.font(Font.BOLD, 13));
         refresh.setColors(Theme.CARD, Theme.CHIP_BORDER, Theme.PRIMARY);
-        refresh.getAccessibleContext().setAccessibleDescription("Reload the top ten completed runs");
+        refresh.getAccessibleContext().setAccessibleDescription("Reload the top ten player and mode totals");
         refresh.addActionListener(e -> refreshScores());
         JPanel actions = panel(new GridBagLayout());
-        actions.add(refresh);
+        modeFilter.setFont(Theme.font(Font.PLAIN, 13));
+        modeFilter.getAccessibleContext().setAccessibleName("Leaderboard game mode");
+        modeFilter.setToolTipText("Add each player's scores within the same game mode");
+        modeFilter.addActionListener(e -> {
+            hasResults = false;
+            leading.setText("—");
+            personal.setText("—");
+            runCount.setText("—");
+            status.setForeground(Theme.MUTED);
+            status.setText("Loading scores for " + modeFilter.getSelectedItem() + "...");
+            showMessage("Loading the leaderboard", "Adding scores separately for each player and mode.");
+            refreshScores();
+        });
+        JPanel controls = panel(new GridLayout(2, 1, 0, 7));
+        controls.add(modeFilter);
+        controls.add(refresh);
+        actions.add(controls);
         banner.add(actions, BorderLayout.EAST);
         intro.add(banner, BorderLayout.NORTH);
         JPanel stats = panel(new GridLayout(1, 3, 12, 0));
         stats.add(stat("Leading score", leading, "Highest total in the top 10"));
-        stats.add(stat("Your best in top 10", personal, "Your highest listed total"));
-        stats.add(stat("Ranked runs", runCount, "Completed runs shown below"));
+        stats.add(stat("Your top mode total", personal, "Your highest listed mode total"));
+        stats.add(stat("Ranked entries", runCount, "Player and mode totals below"));
         intro.add(stats);
         add(intro, BorderLayout.NORTH);
 
         RoundPanel table = new RoundPanel(Theme.CARD, 24, new BorderLayout(0, 12));
         table.setBorder(new EmptyBorder(18, 18, 16, 18));
-        table.add(stack(Theme.label("Top 10 runs", Font.BOLD, 19, Theme.TEXT),
-                Theme.label("Highest total first · Players can appear more than once · Your runs are marked YOU",
+        table.add(stack(Theme.label("Top 10 mode totals", Font.BOLD, 19, Theme.TEXT),
+                Theme.label("Scores add within each mode · Quiz + Fish and Fish only stay separate",
                         Theme.nunito(Font.PLAIN, 12), Theme.MUTED)), BorderLayout.NORTH);
         showMessage("Loading the leaderboard", "Your latest scores will appear here shortly.");
         JPanel header = columns(true, Theme.label("RANK", Font.BOLD, 11, Theme.MUTED),
                 Theme.label("PLAYER / MODE", Font.BOLD, 11, Theme.MUTED),
                 Theme.label("SCORE DETAILS", Font.BOLD, 11, Theme.MUTED),
                 Theme.label("TOTAL", Font.BOLD, 11, Theme.MUTED),
-                Theme.label("PLAYED", Font.BOLD, 11, Theme.MUTED));
+                Theme.label("LAST PLAYED", Font.BOLD, 11, Theme.MUTED));
         header.setOpaque(true);
         header.setBackground(Theme.CARD);
         JPanel topAligned = panel(new BorderLayout());
@@ -111,10 +136,13 @@ class LeaderboardPanel extends JPanel {
         refreshing = true;
         refresh.setEnabled(false);
         refresh.setText("Refreshing...");
+        ScoreEntry.Mode requestedMode = selectedMode();
         new SwingWorker<List<ScoreEntry>, Void>() {
-            @Override protected List<ScoreEntry> doInBackground() { return scores.top(10); }
+            @Override protected List<ScoreEntry> doInBackground() { return scores.totals(10, requestedMode); }
             @Override protected void done() {
                 try {
+                    // A mode change during a request must never display the old mode's rows.
+                    if (selectedMode() != requestedMode) return;
                     displayScores(get());
                     hasResults = true;
                     status.setForeground(Theme.MUTED);
@@ -129,9 +157,14 @@ class LeaderboardPanel extends JPanel {
                     refreshing = false;
                     refresh.setEnabled(true);
                     refresh.setText("Refresh");
+                    if (selectedMode() != requestedMode) refreshScores();
                 }
             }
         }.execute();
+    }
+
+    private ScoreEntry.Mode selectedMode() {
+        return ((ModeChoice) modeFilter.getSelectedItem()).mode();
     }
 
     private void displayScores(List<ScoreEntry> top) {

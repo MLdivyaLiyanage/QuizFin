@@ -75,6 +75,30 @@ public final class AuthServiceIntegrationTest {
                     scores.add(new ScoreEntry("identity", null, 15, 2000));
                     check(scores.top(10).size() == 2 && scores.top(1).get(0).score == 50, "Real score persistence and ranking");
                     check(scores.best("identity") == 50, "Legacy mixed-case scores belong to canonical account");
+                    for (int i = 0; i < 12; i++) {
+                        scores.add(new ScoreEntry("identity", 100 + i, 100, 4000 + i));
+                    }
+                    scores.add(new ScoreEntry("identity", null, 25, 6000));
+                    var fishRuns = scores.top(10, ScoreEntry.Mode.FISH_ONLY);
+                    check(fishRuns.size() == 2 && fishRuns.get(0).score == 25 && fishRuns.get(1).score == 15,
+                            "Mode filter must precede LIMIT and keep repeated attempts separate");
+                    var combinedRuns = scores.top(10, ScoreEntry.Mode.QUIZ_AND_FISH);
+                    check(combinedRuns.size() == 10 && combinedRuns.get(0).score == 211
+                                    && combinedRuns.stream().allMatch(e -> e.mode == ScoreEntry.Mode.QUIZ_AND_FISH),
+                            "Combined mode ranks individual totals and excludes standalone fish scores");
+                    scores.add(new ScoreEntry("Divya", 30, 40, 7000));
+                    scores.add(new ScoreEntry("divya", 30, 50, 8000));
+                    scores.add(new ScoreEntry("Divya", null, 90, 9000));
+                    var totals = scores.totals(10, null);
+                    var divyaTotals = totals.stream().filter(e -> e.player.equalsIgnoreCase("divya")).toList();
+                    check(divyaTotals.size() == 2
+                                    && divyaTotals.stream().anyMatch(e -> e.mode == ScoreEntry.Mode.QUIZ_AND_FISH
+                                            && e.score == 150 && e.quizScore == 60 && e.fishScore == 90 && e.time == 8000)
+                                    && divyaTotals.stream().anyMatch(e -> e.mode == ScoreEntry.Mode.FISH_ONLY && e.score == 90),
+                            "70 + 80 must aggregate to 150 per account/mode, with Fish only remaining 90");
+                    check(scores.totals(1, ScoreEntry.Mode.QUIZ_AND_FISH).get(0).score == 2516
+                                    && scores.totals(1, ScoreEntry.Mode.FISH_ONLY).get(0).score == 90,
+                            "Cumulative rankings must group all attempts before LIMIT and keep modes separate");
                     statement.executeUpdate("DROP TABLE " + schema + ".scores");
                     try {
                         scores.add(new ScoreEntry("identity", null, 15, 3000));

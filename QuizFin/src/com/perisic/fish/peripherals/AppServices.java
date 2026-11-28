@@ -19,7 +19,7 @@ public class AppServices {
     public final AuthService auth;
 
     /*
-    * there used the low cupling there stored the those data*/
+    * there used the low cupling there stored the those data service constructors*/
     public AppServices(QuestionSource questions, GameSource games, ScoreStore scores, AuthService auth) {
         this.questions = questions;
         this.games = games;
@@ -27,7 +27,7 @@ public class AppServices {
         this.auth = auth;
     }
 
-    /** Production wiring. */
+    /** Production wiring. chooses production services*/
     public AppServices() {
         this(new QuizServer(), new GameServer(), new Leaderboard(), new AuthService());
     }
